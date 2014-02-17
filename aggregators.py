@@ -1,7 +1,6 @@
 # Set of ranking aggregators that, given a set of full rankings output an aggregate ranking
 import numpy as np
 import scipy as sp
-import abc
 import random
 
 
@@ -41,8 +40,16 @@ class RankAggBase(object):
       raise ke
 
 
-
-
-
-
-
+if __name__ == "__main__":
+  cand_set = set(['a','b','c'])
+  base_agg = RankAggBase(cand_set)
+  print base_agg.m, base_agg.cands
+  base_agg.agg_ctr = {'a':1, 'b':2, 'c':3}
+  base_agg.agg_rtc = {1:tuple('a'), 2:tuple('b'), 3:tuple('c')}
+  print base_agg.get_ranking('a')
+  print base_agg.get_candidates(1)
+  print type(base_agg.get_candidates(1))
+  try:
+    base_agg.get_ranking('d')
+  except KeyError:
+    print "Could not find d"
