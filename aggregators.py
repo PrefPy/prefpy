@@ -12,7 +12,7 @@ class RankAggBase(object):
     self.agg_ctr = None # Mapping of candidates to ranking (projective)
     self.agg_rtc = None # Mapping of rankings to candidates (surjective)
   
-  def aggregate(self, labels):
+  def aggregate(self, rankings):
     """ Given a set of rankings, produce the aggregate ranking. Each ranking is a list of tuples (to accomodate equivalence classes) with the lowest index having the highest rank """
     # When implementing, set the aggregate in self.agg_ctr and self.agg_rtc correctly
     raise NotImplementedError("Do not use this class")
@@ -39,17 +39,43 @@ class RankAggBase(object):
       print "The ranking %d is not in the aggregate ranking" % rank
       raise ke
 
+class BordaAgg(RankAggBase):
+  def aggregate(self, rankings):
+    """ Given a set of rankings, computes the aggregate Borda score for each candidate and uses that to create a final aggregate preference ordering """
+    self.agg_ctr = dict()
+    cand_scores = {i:0 for i in self.cands}
+    # For each ranking, go through it and add len - index to candidate scores
+    for ranking in rankings:
+      for index, equiv_class in enumerate(ranking):
+        borda_score = len(ranking) - index
+        for cand in equiv_class:
+          cand_scores[cand] += borda_score
+    print "Candidate scores: ", cand_scores
+    # Shitty hack to make equivalence classes (i.e. breaking ties by not breaking ties)
+    cur_score = max(cand_scores.values())
+    cur_rank = 1
+    self.agg_rtc = {cur_rank:[]}
+    for i in sorted(cand_scores.keys(), key=lambda x: -cand_scores[x]):
+      if cand_scores[i] == cur_score:
+        self.agg_rtc[cur_rank].append(i)
+      elif cand_scores[i] < cur_score:
+        cur_rank += 1
+        cur_score = cand_scores[i]
+        self.agg_rtc[cur_rank] = [i]
+      self.agg_ctr[i] = cur_rank
+
+
+
+
 
 if __name__ == "__main__":
   cand_set = set(['a','b','c'])
-  base_agg = RankAggBase(cand_set)
-  print base_agg.m, base_agg.cands
-  base_agg.agg_ctr = {'a':1, 'b':2, 'c':3}
-  base_agg.agg_rtc = {1:tuple('a'), 2:tuple('b'), 3:tuple('c')}
-  print base_agg.get_ranking('a')
-  print base_agg.get_candidates(1)
-  print type(base_agg.get_candidates(1))
-  try:
-    base_agg.get_ranking('d')
-  except KeyError:
-    print "Could not find d"
+  votes = [[tuple('a'),tuple('b')]]
+  bagg = BordaAgg(cand_set)
+  bagg.aggregate(votes)
+  print bagg.agg_ctr, bagg.agg_rtc
+
+
+
+           
+
