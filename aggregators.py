@@ -64,8 +64,10 @@ class BordaAgg(RankAggBase):
         self.agg_rtc[cur_rank] = [i]
       self.agg_ctr[i] = cur_rank
 
-
-
+class GMMPLAgg(RankAggBase):	
+  def aggregate(self, rankings):
+    """ Given a set of rankings, computes the Placket-Luce model for preferences """
+    pass
 
 
 if __name__ == "__main__":
