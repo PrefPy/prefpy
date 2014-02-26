@@ -43,10 +43,11 @@ class RankAggBase(object):
     except KeyError as ke:
       print "The ranking %d is not in the aggregate ranking" % rank
       raise ke
-	
-	def create_rank_dicts(self, cand_scores):
-		""" Takes the candidate scores in form cand:score and returns a dictionary of rankings to candidates and candidates to rankings """
-		# Shitty hack to make equivalence classes (i.e. breaking ties by not breaking ties)
+  
+  def create_rank_dicts(self, cand_scores):
+    """ Takes the candidate scores in form cand:score and returns a dictionary of rankings to candidates and candidates to rankings """
+    # Shitty hack to make equivalence classes (i.e. breaking ties by not breaking ties)
+    self.agg_ctr = dict()
     cur_score = max(cand_scores.values())
     cur_rank = 1
     self.agg_rtc = {cur_rank:[]}
@@ -64,7 +65,6 @@ class RankAggBase(object):
 class BordaAgg(RankAggBase):
   def aggregate(self, rankings):
     """ Given a set of rankings, computes the aggregate Borda score for each candidate and uses that to create a final aggregate preference ordering """
-    self.agg_ctr = dict()
     cand_scores = {i:0 for i in self.cands}
     # For each ranking, go through it and add len - index to candidate scores
     for ranking in rankings:
@@ -72,14 +72,14 @@ class BordaAgg(RankAggBase):
         borda_score = len(ranking) - index
         for cand in equiv_class:
           cand_scores[cand] += borda_score
-		self.create_rank_dicts(cand_scores)
-					
-class GMMPLAgg(RankAggBase):	
+    self.create_rank_dicts(cand_scores)
+          
+class GMMPLAgg(RankAggBase):  
   def aggregate(self, rankings, breaking='full', K=None):
     """ Given a set of rankings, computes the Placket-Luce model for preferences """
     # Ignore breakings for now
-    breaking = np.ones((n_cands,n_cands))
     n_cands = len(self.cands)
+    breaking = np.ones((n_cands,n_cands))
     cands_list = list(self.cands)
     # So this is kinda hacky, but essentially we want a mapping of index -> candidate for the matrix, which can be arbitrary as long as it's consistent
     P = np.zeros((n_cands,n_cands))
@@ -93,41 +93,24 @@ class GMMPLAgg(RankAggBase):
           cand2_rank = get_index_nested(ranking, cand2)
           if cand1_rank < cand2_rank: # i.e. cand 1 is ranked higher
             localP[ind1][ind2] = 1
-			localP *= breaking
-			for ind, cand in enumerate(cands_list):
-				localP[ind][ind] = -1*(np.sum(localP.T[ind][:ind]) + np.sum(localP.T[ind][ind+1:])) # quick and dirty way to do sum w/o i
-			P += localP
-		eps = 1e-7 # Not really 0, but close enough?
+      localP *= breaking
+      for ind, cand in enumerate(cands_list):
+        localP[ind][ind] = -1*(np.sum(localP.T[ind][:ind]) + np.sum(localP.T[ind][ind+1:])) # quick and dirty way to do sum w/o i
+      P += localP
+    eps = 1e-7 # Not really 0, but close enough?
     assert(np.linalg.matrix_rank(P) == self.m-1)
     assert(all(np.sum(P, axis=0) <= eps))
-		U, S, V = np.linalg.svd(P)
+    U, S, V = np.linalg.svd(P)
     gamma = np.abs(V[-1])
-    assert(all(np.dot(P, gamma) < epsilon))
-		
-		cand_scores = {cand:gamma[ind] for ind, cand in enumerate(cands_list)}
-		self.create_rank_dicts(cand_scores)
-
-
-
-
-			
-
-
-        
-
-
-
-
-
-
-
-    pass
+    assert(all(np.dot(P, gamma) < eps))  
+    cand_scores = {cand:gamma[ind] for ind, cand in enumerate(cands_list)}
+    self.create_rank_dicts(cand_scores)
 
 
 if __name__ == "__main__":
   cand_set = set(['a','b','c'])
   votes = [[tuple('a'),tuple('b')]]
-  bagg = BordaAgg(cand_set)
+  bagg = GMMPLAgg(cand_set)
   bagg.aggregate(votes)
   print bagg.agg_ctr, bagg.agg_rtc
 
