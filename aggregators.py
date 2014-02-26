@@ -3,6 +3,11 @@ import numpy as np
 import scipy as sp
 import random
 
+def get_index_nested(x, i): 
+  for ind in range(len(x)): 
+    if i in x[ind]: 
+      return ind
+  return -1
 
 class RankAggBase(object):
   def __init__(self, cand_set):
@@ -65,8 +70,37 @@ class BordaAgg(RankAggBase):
       self.agg_ctr[i] = cur_rank
 
 class GMMPLAgg(RankAggBase):	
-  def aggregate(self, rankings):
+  def aggregate(self, rankings, breaking='full', K=None):
     """ Given a set of rankings, computes the Placket-Luce model for preferences """
+    # Ignore breakings for now
+    breaking = np.ones((n_cands,n_cands))
+    n_cands = len(self.cands)
+    cands_list = list(self.cands)
+    # So this is kinda hacky, but essentially we want a mapping of index -> candidate for the matrix, which can be arbitrary as long as it's consistent
+    cand_ind = {cand:ind for ind, cand in enumerate(cands_list)} 
+
+
+    P = np.zeros((n_cands,n_cands))
+    for ranking in rankings:
+      localP = np.zeros((n_cands,n_cands))
+      for cand1 in cands_list:
+        for cand2 in cands_list:
+          if cand1 == cand2:
+            continue
+          cand1_rank = get_index_nested(ranking, cand1)
+          cand2_rank = get_index_nested(ranking, cand2)
+          if cand1_rank < cand2_rank: # i.e. cand 1 is ranked higher
+            localP[cand_ind[cand1]][cand_ind[cand2]] = 1
+
+
+        
+
+
+
+
+
+
+
     pass
 
 
