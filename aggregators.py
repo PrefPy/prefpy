@@ -1,11 +1,12 @@
 # Set of ranking aggregators that, given a set of full rankings output an aggregate ranking
+# TODO: Make it so that you can essentially just add data and get a new ranking. Would need representation of current score for each candidate.
 import numpy as np
 import scipy as sp
 import random
 
-def get_index_nested(x, i): 
-  for ind in range(len(x)): 
-    if i in x[ind]: 
+def get_index_nested(x, i):
+  for ind in range(len(x)):
+    if i in x[ind]:
       return ind
   return -1
 
@@ -16,7 +17,7 @@ class RankAggBase(object):
     self.cands = cand_set
     self.agg_ctr = None # Mapping of candidates to ranking (projective)
     self.agg_rtc = None # Mapping of rankings to candidates (surjective)
-  
+
   def aggregate(self, rankings):
     """ Given a set of rankings, produce the aggregate ranking. Each ranking is a list of tuples (to accomodate equivalence classes) with the lowest index having the highest rank """
     # When implementing, set the aggregate in self.agg_ctr and self.agg_rtc correctly
@@ -43,7 +44,7 @@ class RankAggBase(object):
     except KeyError as ke:
       print "The ranking %d is not in the aggregate ranking" % rank
       raise ke
-  
+
   def create_rank_dicts(self, cand_scores):
     """ Takes the candidate scores in form cand:score and returns a dictionary of rankings to candidates and candidates to rankings """
     # Shitty hack to make equivalence classes (i.e. breaking ties by not breaking ties)
@@ -73,8 +74,8 @@ class BordaAgg(RankAggBase):
         for cand in equiv_class:
           cand_scores[cand] += borda_score
     self.create_rank_dicts(cand_scores)
-          
-class GMMPLAgg(RankAggBase):  
+
+class GMMPLAgg(RankAggBase):
   def aggregate(self, rankings, breaking='full', K=None):
     """ Given a set of rankings, computes the Placket-Luce model for preferences """
     # Ignore breakings for now
@@ -102,19 +103,43 @@ class GMMPLAgg(RankAggBase):
     assert(all(np.sum(P, axis=0) <= eps))
     U, S, V = np.linalg.svd(P)
     gamma = np.abs(V[-1])
-    assert(all(np.dot(P, gamma) < eps))  
+    assert(all(np.dot(P, gamma) < eps))
     cand_scores = {cand:gamma[ind] for ind, cand in enumerate(cands_list)}
     self.create_rank_dicts(cand_scores)
 
 
 if __name__ == "__main__":
-  cand_set = set(['a','b','c'])
-  votes = [[tuple('a'),tuple('b')]]
-  bagg = GMMPLAgg(cand_set)
+  print "Executing Unit Tests"
+  print "Testing Borda"
+  cand_set = ['a','b','c']
+  bagg = BordaAgg(set(cand_set))
+  # Corner case: 1 empty ranking
+  votes = [[tuple()]] # should give all candidates the '1' position -- everyone's a winner!
   bagg.aggregate(votes)
+  assert([bagg.get_ranking(i) for i in cand_set] == [1,1,1])
+
+  votes = [[tuple()]*2] # multiple empty rankings, same result
+  bagg.aggregate(votes)
+  assert([bagg.get_ranking(i) for i in cand_set] == [1,1,1])
+
+  votes = [[tuple('a')]] # 1 party system, a should be on top
+  bagg.aggregate(votes)
+  assert([bagg.get_ranking(i) for i in cand_set] == [1,2,2])
+
+  votes = [[tuple('a'), ('b','c')]] # should be the same
+  bagg.aggregate(votes)
+  assert([bagg.get_ranking(i) for i in cand_set] == [1,2,2])
+
+  votes = [[tuple('a'), tuple('b'), tuple('c')]] # pretty solid ranking
+  bagg.aggregate(votes)
+  assert([bagg.get_ranking(i) for i in cand_set] == [1,2,3])
+
+  print "Tests passed"
+
+  votes = [[tuple('a'),tuple('b')], [tuple('a'),tuple('c'),tuple('b')]]
   print bagg.agg_ctr, bagg.agg_rtc
 
 
 
-           
+
 
