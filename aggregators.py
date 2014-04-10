@@ -11,10 +11,13 @@ def get_index_nested(x, i):
   return -1
 
 class RankAggBase(object):
-  def __init__(self, cand_set):
+  def __init__(self, cands_list):
     """ Initializes the aggregator by a set of all possible candidates and stores this along with the number of candidates"""
     self.m = len(cand_set)
-    self.cands = cand_set
+    self.cands_list = cands_list
+    self.cands_set = set(cands_list) # for speed
+    if len(self.cands_list) != len(self.cands_set):
+      raise ValueError("List of candidates must not contain duplicates")
     self.agg_ctr = None # Mapping of candidates to ranking (projective)
     self.agg_rtc = None # Mapping of rankings to candidates (surjective)
 
@@ -66,7 +69,7 @@ class RankAggBase(object):
 class BordaAgg(RankAggBase):
   def aggregate(self, rankings):
     """ Given a set of rankings, computes the aggregate Borda score for each candidate and uses that to create a final aggregate preference ordering """
-    cand_scores = {i:0 for i in self.cands}
+    cand_scores = {i:0 for i in self.cands_list}
     # For each ranking, go through it and add len - index to candidate scores
     for ranking in rankings:
       for index, equiv_class in enumerate(ranking):
@@ -79,15 +82,14 @@ class GMMPLAgg(RankAggBase):
   def aggregate(self, rankings, breaking='full', K=None):
     """ Given a set of rankings, computes the Placket-Luce model for preferences """
     # Ignore breakings for now
-    n_cands = len(self.cands)
+    n_cands = len(self.cands_list)
     breaking = np.ones((n_cands,n_cands))
-    cands_list = list(self.cands)
     # So this is kinda hacky, but essentially we want a mapping of index -> candidate for the matrix, which can be arbitrary as long as it's consistent
     P = np.zeros((n_cands,n_cands))
     for ranking in rankings:
       localP = np.zeros((n_cands,n_cands))
-      for ind1, cand1 in enumerate(cands_list):
-        for ind2, cand2 in enumerate(cands_list):
+      for ind1, cand1 in enumerate(self.cands_list):
+        for ind2, cand2 in enumerate(self.cands_list):
           if ind1 == ind2:
             continue
           cand1_rank = get_index_nested(ranking, cand1)
@@ -95,24 +97,28 @@ class GMMPLAgg(RankAggBase):
           if cand1_rank < cand2_rank: # i.e. cand 1 is ranked higher
             localP[ind1][ind2] = 1
       localP *= breaking
-      for ind, cand in enumerate(cands_list):
+      for ind, cand in enumerate(self.cands_list):
         localP[ind][ind] = -1*(np.sum(localP.T[ind][:ind]) + np.sum(localP.T[ind][ind+1:])) # quick and dirty way to do sum w/o i
-      P += localP
+      P += localP/len(rankings)
     eps = 1e-7 # Not really 0, but close enough?
     assert(np.linalg.matrix_rank(P) == self.m-1)
     assert(all(np.sum(P, axis=0) <= eps))
     U, S, V = np.linalg.svd(P)
     gamma = np.abs(V[-1])
     assert(all(np.dot(P, gamma) < eps))
-    cand_scores = {cand:gamma[ind] for ind, cand in enumerate(cands_list)}
+    cand_scores = {cand:gamma[ind] for ind, cand in enumerate(self.cands_list)}
+    self.P = P
     self.create_rank_dicts(cand_scores)
 
 
 if __name__ == "__main__":
   print "Executing Unit Tests"
-  print "Testing Borda"
   cand_set = ['a','b','c']
-  bagg = BordaAgg(set(cand_set))
+  print "Testing Borda"
+
+  # Testing Borda
+
+  bagg = BordaAgg(cand_set)
   # Corner case: 1 empty ranking
   votes = [[tuple()]] # should give all candidates the '1' position -- everyone's a winner!
   bagg.aggregate(votes)
@@ -134,10 +140,22 @@ if __name__ == "__main__":
   bagg.aggregate(votes)
   assert([bagg.get_ranking(i) for i in cand_set] == [1,2,3])
 
+  print "Some final rankings", bagg.agg_ctr, bagg.agg_rtc
+
+  print "Done testing Borda"
+  # Testing GMM
+  print "Testing GMMPL"
+
+  gmmagg = GMMPLAgg(cand_set)
+  # from the paper
+  votes = [[tuple('a'), tuple('b'), tuple('c')],[tuple('b'), tuple('c'), tuple('a')]]
+  gmmagg.aggregate(votes)
+  print gmmagg.P
+  print gmmagg.agg_ctr, gmmagg.agg_rtc
+  assert([gmmagg.get_ranking(i) for i in cand_set] == [2,1,3])
+  assert(np.array_equal(gmmagg.P,np.array([[-1,.5,.5],[.5,-.5,1],[.5,0,-1.5]])))
   print "Tests passed"
 
-  votes = [[tuple('a'),tuple('b')], [tuple('a'),tuple('c'),tuple('b')]]
-  print bagg.agg_ctr, bagg.agg_rtc
 
 
 
