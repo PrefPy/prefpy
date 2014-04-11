@@ -13,7 +13,7 @@ def get_index_nested(x, i):
 class RankAggBase(object):
   def __init__(self, cands_list):
     """ Initializes the aggregator by a set of all possible candidates and stores this along with the number of candidates"""
-    self.m = len(cand_set)
+    self.m = len(cands_list)
     self.cands_list = cands_list
     self.cands_set = set(cands_list) # for speed
     if len(self.cands_list) != len(self.cands_set):
@@ -79,15 +79,86 @@ class BordaAgg(RankAggBase):
     self.create_rank_dicts(cand_scores)
 
 class GMMPLAgg(RankAggBase):
+
+  def _full(self, k):
+    """ Full breaking """
+    # doesn't do anything with k
+    G = np.ones((self.m, self.m))
+    np.fill_diagonal(G, 0)
+    return G
+
+  def _top(self, k):
+    """ Top k breaking """
+    if k > self.m:
+        raise ValueError
+    G = np.ones((self.m, self.m))
+    np.fill_diagonal(G, 0)
+    for i in range(self.m):
+        for j in range(self.m):
+            if i == j:
+                continue
+            if i > k and j > k:
+                G[i][j] = 0
+    return G
+
+  def _bot(self, k):
+    """ Bottom k breaking """
+    if k < 2:
+        raise ValueError
+    G = np.ones((self.m, self.m))
+    np.fill_diagonal(G, 0)
+    for i in range(self.m):
+        for j in range(self.m):
+            if i == j:
+                continue
+            if i <= k and j <= k:
+                G[i][j] = 0
+    return G
+
+  def _adj(self, k):
+    """ Adjacent breaking """
+    # doesn't do anything with k
+    G = np.zeros((self.m, self.m))
+    for i in range(self.m):
+        for j in range(self.m):
+            if (i == j+1) or (j == i+1):
+                G[i][j] = 1
+    return G
+
+  def _pos(self, k):
+    """ Position k breaking """
+    if k < 2:
+        raise ValueError
+    G = np.zeros((self.m, self.m))
+    for i in range(self.m):
+        for j in range(self.m):
+            if i == j:
+                continue
+            if i < k or j < k:
+                continue
+            if i == k or j == k:
+                G[i][j] = 1
+    return G
+
+
   def aggregate(self, rankings, breaking='full', K=None):
     """ Given a set of rankings, computes the Placket-Luce model for preferences """
-    # Ignore breakings for now
-    n_cands = len(self.cands_list)
-    breaking = np.ones((n_cands,n_cands))
+    breakings = {
+      'full':self._full,
+      'top':self._top,
+      'botk':self._bot,
+      'adj':self._adj,
+      'posk':self._pos
+    }
+    if breaking != 'full' and K == None:
+      raise ValueError("K cannot be None for non-full breaking")
+
+    self.m = len(self.cands_list)
+    break_mat = breakings[breaking](K)
     # So this is kinda hacky, but essentially we want a mapping of index -> candidate for the matrix, which can be arbitrary as long as it's consistent
-    P = np.zeros((n_cands,n_cands))
+    P = np.zeros((self.m,self.m))
     for ranking in rankings:
-      localP = np.zeros((n_cands,n_cands))
+      localP = np.zeros((self.m,self.m))
       for ind1, cand1 in enumerate(self.cands_list):
         for ind2, cand2 in enumerate(self.cands_list):
           if ind1 == ind2:
@@ -96,9 +167,9 @@ class GMMPLAgg(RankAggBase):
           cand2_rank = get_index_nested(ranking, cand2)
           if cand1_rank < cand2_rank: # i.e. cand 1 is ranked higher
             localP[ind1][ind2] = 1
-      localP *= breaking
       for ind, cand in enumerate(self.cands_list):
         localP[ind][ind] = -1*(np.sum(localP.T[ind][:ind]) + np.sum(localP.T[ind][ind+1:])) # quick and dirty way to do sum w/o i
+      localP *= break_mat
       P += localP/len(rankings)
     eps = 1e-7 # Not really 0, but close enough?
     assert(np.linalg.matrix_rank(P) == self.m-1)
@@ -154,6 +225,10 @@ if __name__ == "__main__":
   print gmmagg.agg_ctr, gmmagg.agg_rtc
   assert([gmmagg.get_ranking(i) for i in cand_set] == [2,1,3])
   assert(np.array_equal(gmmagg.P,np.array([[-1,.5,.5],[.5,-.5,1],[.5,0,-1.5]])))
+
+  gmmagg.aggregate(votes, breaking='top', K=2)
+  print gmmagg.P
+  print gmmagg.agg_ctr, gmmagg.agg_rtc
   print "Tests passed"
 
 
