@@ -101,13 +101,13 @@ class GMMPLAggregator(aggregate.RankAggregator):
         """
         Description:
             Takes in a set of rankings and computes the
-            Placket-Luce model aggregate ranking.
+            Plackett-Luce model aggregate ranking.
         Parameters:
             rankings: set of rankings to aggregate
             breaking: type of breaking to use
             k:        number to be used for top, bottom, and position breakings
         """
-        
+
         breakings = { "full":     self._full,
                       "top":      self._top,
                       "bottom":   self._bot,
