@@ -1,4 +1,4 @@
-prefpy
+PrefPy
 ======
 
 Rank aggregation algorithms in the computer science field of computational social choice
@@ -7,8 +7,8 @@ Rank aggregation algorithms in the computer science field of computational socia
 What's New
 ==========
 
-- Generalized method of moments algorithm for mixture of Plackett-Luce models
-- Implementation of Mixture Model for Plackett-Luce EMM algorithm by Gormley & Murphy for the "no dampening" case (i.e. the dampening parameters are all fixed at 1)
+- Generalized method of moments algorithm for mixtures of Plackett-Luce models
+- Implementation of EMM algorithm for mixtures of Plackett-Luce by Gormley & Murphy
 
 
 Work In Progress
@@ -23,7 +23,9 @@ Work In Progress
 Installation
 ============
 
-Install by running setup.py with Python 3.5 with the command
+- Use of MATLAB optimization in this package requires Python 3.4 due to lack of support yet for Python 3.5 by the MATLAB Engine
+
+Install by running setup.py with Python 3.4 (or greater) with the command
 
     python3 setup.py install
 
