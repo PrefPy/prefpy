@@ -2,11 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def plot_error_time_data(str_error_type,          # string, title of the error measure in use
-                         error_results,            # error results
+                         error_results,           # error results
                          time_results,            # time results
-                         orig_error_results,       # original GMM vs EMM error results
+                         orig_error_results,      # original GMM vs EMM error results
                          orig_time_results,       # original GMM vs EMM time results
-                         emm1_error_results=None,  # if not None, take the place of emm_new1 line
+                         emm1_error_results=None, # if not None, take the place of emm_new1 line
                          emm1_time_results=None,  # if not None, take the place of emm_new1 line
                          output_img_filename=None # output png filename
                         ):
