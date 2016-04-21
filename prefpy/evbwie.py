@@ -107,11 +107,12 @@ class EMMMixPLAggregator(aggregate.RankAggregator):
                     z_h1[i][k] = (pi_h[k] * EMMMixPLAggregator.f(x[i], p_h[k])) / denom_sum
 
             # M-Step:
-            #for l in range(max_iters_mm):
-            for l in range(int(g/50) + 5):
+            for l in range(max_iters_mm):
+            #for l in range(int(g/50) + 5):
                 for k in range(K):
                     normconst = 0
-                    pi_h1[k] = np.sum(z_h1.T[k]) / len(z_h1)
+                    if l == 0: # only need to compute pi at first MM iteration
+                        pi_h1[k] = np.sum(z_h1.T[k]) / len(z_h1)
                     for j in range(self.m):
                         omega_k_j = EMMMixPLAggregator.omega(k, j, z_h1, x) # numerator
                         denom_sum = 0
@@ -132,15 +133,18 @@ class EMMMixPLAggregator(aggregate.RankAggregator):
                         p_h1[k][j] /= normconst
 
                 if (epsilon_mm != None and
-                    np.all(np.absolute(p_h1 - p_h) < epsilon_mm) and
-                    np.all(np.absolute(pi_h1 - pi_h) < epsilon_mm)):
+                    np.all(np.absolute(p_h1 - p_h) < epsilon_mm)):
                         break
+
+                p_h = np.copy(p_h1) # deep copy p for next MM iteration
+                # pi does not change across MM iterations, no copy needed
 
             if (epsilon != None and
                 np.all(np.absolute(p_h1 - p_h) < epsilon) and
                 np.all(np.absolute(pi_h1 - pi_h) < epsilon)):
                     break
 
+            # remember that assignments below are references only, not copies
             p_h = p_h1
             pi_h = pi_h1
 
