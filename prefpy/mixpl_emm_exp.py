@@ -77,8 +77,8 @@ def main(argv):
     emm_solns_file = open(emm_solns_filename, 'wb') # writable binary mode
 
     # open previous experiments results files
-    orig_error_results = np.loadtxt("../../MixPL_WsseTimeExperiments/mse_mixPL_04-alts_1000-trials_20.csv", delimiter=',')
-    orig_time_results = np.loadtxt("../../MixPL_WsseTimeExperiments/time_mixPL_04-alts_1000-trials_20.csv", delimiter=',')
+    orig_error_results = np.loadtxt("../../MixPL_WsseTimeExperiments/mse_mixPL_04-alts_1000-trials_21.csv", delimiter=',')
+    orig_time_results = np.loadtxt("../../MixPL_WsseTimeExperiments/time_mixPL_04-alts_1000-trials_21.csv", delimiter=',')
 
     wsse_res = np.empty((p, 3))
     sse_res = np.empty((p, 3))

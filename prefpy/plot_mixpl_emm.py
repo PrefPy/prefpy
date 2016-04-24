@@ -21,10 +21,10 @@ def plot_error_time_data(str_error_type,          # string, title of the error m
     emm_new2 = None # declare in enclosing scope before using
     if emm1_error_results is None or emm1_time_results is None:
         emm_new1, = plt.plot(error_results.T[0], error_results.T[1], "co", label="EMM-10-10")
-        emm_new2, = plt.plot(error_results.T[0], error_results.T[2], "mH", label="EMM-10-5")
+        emm_new2, = plt.plot(error_results.T[0], error_results.T[2], "mH", label="EMM-5-10")
     else:
         emm_new1, = plt.plot(emm1_error_results.T[0], emm1_error_results.T[1], "co", label="EMM-10-10")
-        emm_new2, = plt.plot(error_results.T[0], error_results.T[1], "mH", label="EMM-10-5")
+        emm_new2, = plt.plot(error_results.T[0], error_results.T[1], "mH", label="EMM-5-10")
 
     plt.subplot(122)
     plt.title("Time (seconds)")
@@ -33,12 +33,12 @@ def plot_error_time_data(str_error_type,          # string, title of the error m
     plt.plot(orig_time_results.T[0], orig_time_results.T[4], "g^", label="EMM")
     if emm1_time_results is None or emm1_time_results is None:
         plt.plot(time_results.T[0], time_results.T[1], "co", label="EMM-10-10")
-        plt.plot(time_results.T[0], time_results.T[2], "mH", label="EMM-10-5")
+        plt.plot(time_results.T[0], time_results.T[2], "mH", label="EMM-5-10")
     else:
         plt.plot(emm1_time_results.T[0], emm1_time_results.T[1], "co", label="EMM-10-10")
-        plt.plot(time_results.T[0], time_results.T[1], "mH", label="EMM-10-5")
+        plt.plot(time_results.T[0], time_results.T[1], "mH", label="EMM-5-10")
 
-    fig.legend([gmm_line, emm_line, emm_new1, emm_new2], ["GMM", "EMM", "EMM-10-10", "EMM-10-5"], loc="center right")
+    fig.legend([gmm_line, emm_line, emm_new1, emm_new2], ["GMM", "EMM", "EMM-10-10", "EMM-5-10"], loc="center right")
     if output_img_filename is not None:
         plt.savefig(output_img_filename, dpi=96)
     else:
