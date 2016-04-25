@@ -4,21 +4,25 @@ import matplotlib.pyplot as plt
 
 
 def print_usage(argv0):
-    print("USAGE: python3", argv0, "<wsse csv filename> <time csv filename> [output png filename]")
+    print("USAGE: python3", argv0, "<error csv filename> <time csv filename> [output png filename]")
     sys.exit()
 
-def plot_wsse_time_data(wsse_results, time_results, output_img_filename=None):
+def plot_error_time_data(str_error_type,
+                        error_results,
+                        time_results,
+                        output_img_filename=None
+                       ):
     # Plot data
     fig = plt.figure(num=1, figsize=(1350/96, 500/96), dpi=96)
     plt.subplot(121)
-    plt.title("MSE")
+    plt.title(str_error_type)
     plt.xlabel("n (votes)")
-    #top2full_line, = plt.plot(wsse_results.T[0], wsse_results.T[1], "m+", label="GMM-top2-16")
-    #top3full_line, = plt.plot(wsse_results.T[0], wsse_results.T[2], "ro", label="GMM-top3-20")
-    #top2min_line, = plt.plot(wsse_results.T[0], wsse_results.T[3], "yd", label="GMM-top2-12")
-    top3full_line, = plt.plot(wsse_results.T[0], wsse_results.T[1], "bs", label="GMM")
-    emm_line, = plt.plot(wsse_results.T[0], wsse_results.T[2], "g^", label="EMM")
-    ##gmmEmp_line = plt.hlines(0.007016424717135926435, wsse_results[0], wsse_results[-1], colors='r', label="GMM-Emp") # this is the "SSE" empirical minimum limit (not "weighted SSE")
+    #top2full_line, = plt.plot(error_results.T[0], error_results.T[1], "m+", label="GMM-top2-16")
+    #top3full_line, = plt.plot(error_results.T[0], error_results.T[2], "ro", label="GMM-top3-20")
+    #top2min_line, = plt.plot(error_results.T[0], error_results.T[3], "yd", label="GMM-top2-12")
+    top3full_line, = plt.plot(error_results.T[0], error_results.T[1], "bs", label="GMM")
+    emm_line, = plt.plot(error_results.T[0], error_results.T[2], "g^", label="EMM")
+    ##gmmEmp_line = plt.hlines(0.007016424717135926435, error_results[0], error_results[-1], colors='r', label="GMM-Emp") # this is the "SSE" empirical minimum limit (not "weighted SSE")
     plt.subplot(122)
     plt.title("Time (seconds)")
     plt.xlabel("n (votes)")
@@ -45,14 +49,14 @@ def main(argv):
         print_usage(argv[0])
 
     # Load data from file
-    wsse_results = np.loadtxt(argv[1], delimiter=',')
+    error_results = np.loadtxt(argv[1], delimiter=',')
     time_results = np.loadtxt(argv[2], delimiter=',')
 
     out_img = None
     if len(argv) >= 4:
         out_img = argv[3]
 
-    plot_wsse_time_data(wsse_results, time_results, out_img)
+    plot_error_time_data(error_results, time_results, out_img)
 
 
 if __name__ == "__main__":
