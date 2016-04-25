@@ -9,22 +9,28 @@ def print_usage(argv0):
 
 def plot_wsse_time_data(wsse_results, time_results, output_img_filename=None):
     # Plot data
-    fig = plt.figure(num=1, figsize=(1690/96, 615/96), dpi=96)
-    plt.subplot(121)
-    plt.title("Mean Weighted SSE")
+    fig = plt.figure(num=1, figsize=(800/96, 500/96), dpi=96)
+    #plt.subplot(121)
+    ax = plt.title("WMSE")
     plt.xlabel("n (votes)")
-    line1, = plt.plot(wsse_results.T[0], wsse_results.T[1], "bs", label="Matlab-GT-Cons")
-    line2, = plt.plot(wsse_results.T[0], wsse_results.T[2], "g^", label="Matlab-GT-Uncon")
-    line3, = plt.plot(wsse_results.T[0], wsse_results.T[3], "ro", label="Matlab-Cons")
-    line4, = plt.plot(wsse_results.T[0], wsse_results.T[4], "m+", label="Matlab-Uncon")
-    plt.subplot(122)
-    plt.title("Time (seconds)")
-    plt.xlabel("n (votes)")
-    plt.plot(time_results.T[0], time_results.T[1], "bs", label="Matlab-GT-Cons")
-    plt.plot(time_results.T[0], time_results.T[2], "g^", label="Matlab-GT-Uncon")
-    plt.plot(time_results.T[0], time_results.T[3], "ro", label="Matlab-Cons")
-    plt.plot(time_results.T[0], time_results.T[3], "m+", label="Matlab-Uncon")
-    fig.legend([line1, line2, line3, line4], ["Matlab-GT-Cons", "Matlab-GT-Uncon", "Matlab-Cons", "Matlab-Uncon"], loc="center right")
+    line1, = plt.plot(wsse_results.T[0], wsse_results.T[1], "bs", label="GT-Cons")
+    line2, = plt.plot(wsse_results.T[0], wsse_results.T[2], "g^", label="GT-Uncons")
+    line3, = plt.plot(wsse_results.T[0], wsse_results.T[3], "ro", label="Cons")
+    line4, = plt.plot(wsse_results.T[0], wsse_results.T[4], "m+", label="Uncons")
+    #plt.subplot(122)
+    #plt.title("Time (seconds)")
+    #plt.xlabel("n (votes)")
+    #plt.plot(time_results.T[0], time_results.T[1], "bs", label="Matlab-GT-Cons")
+    #plt.plot(time_results.T[0], time_results.T[2], "g^", label="Matlab-GT-Uncon")
+    #plt.plot(time_results.T[0], time_results.T[3], "ro", label="Matlab-Cons")
+    #plt.plot(time_results.T[0], time_results.T[3], "m+", label="Matlab-Uncon")
+    # Shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.75, box.height])
+
+    # Put a legend to the right of the current axis
+    #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    fig.legend([line1, line2, line3, line4], ["GT-Cons", "GT-Uncons", "Cons", "Uncons"], loc="center right", bbox_to_anchor=(1, 0.5))
     if output_img_filename is not None:
         plt.savefig(output_img_filename, dpi=96)
     else:
