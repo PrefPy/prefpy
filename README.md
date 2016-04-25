@@ -7,6 +7,7 @@ Rank aggregation algorithms in the computer science field of computational socia
 What's New
 ==========
 
+- Experiments and tests have been factored out of the repository (now located at https://github.com/pdpiech/prefpy-experiments)
 - Generalized method of moments algorithm for mixtures of Plackett-Luce models
 - Implementation of EMM algorithm for mixtures of Plackett-Luce by Gormley & Murphy
 
