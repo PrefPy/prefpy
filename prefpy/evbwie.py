@@ -3,9 +3,9 @@
 # A Mixture Modeling Approach by Gormley and Murphy, 2008
 
 import numpy as np
-import aggregate
-import plackettluce as pl
-import stats
+from . import aggregate
+from . import plackettluce as pl
+from . import stats
 
 
 class EMMMixPLResult:

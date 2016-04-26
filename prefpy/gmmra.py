@@ -3,9 +3,9 @@
 # Aggregation by Azari, Chen, Parkes, & Xia
 
 import numpy as np
-import aggregate
-import plackettluce as pl
-import util
+from . import aggregate
+from . import plackettluce as pl
+from . import util
 
 
 class GMMPLAggregator(aggregate.RankAggregator):

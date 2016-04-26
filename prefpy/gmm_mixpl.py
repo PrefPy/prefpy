@@ -14,11 +14,11 @@ import time
 import importlib
 from collections import namedtuple
 import functools
-import aggregate
-import plackettluce as pl
-import gmm_mixpl_moments as mixpl_moments
-import gmm_mixpl_objectives as mixpl_objs
-import stats
+from . import aggregate
+from . import plackettluce as pl
+from . import gmm_mixpl_moments as mixpl_moments
+from . import gmm_mixpl_objectives as mixpl_objs
+from . import stats
 
 _matlab_support = True
 try:
