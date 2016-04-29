@@ -10,6 +10,7 @@
 
 import numpy as np
 import scipy
+import os
 import time
 import importlib
 from collections import namedtuple
@@ -115,6 +116,9 @@ class GMMMixPLAggregator(aggregate.RankAggregator):
             self.beq = matlab.double(np.ones((1,2)).tolist())
             self.Aeq_uncons = matlab.double([])
             self.beq_uncons = matlab.double([])
+
+        # set matlab directory to the folder containing this module and thus also "optimize.m"
+        self.matlabEng.cd(os.path.dirname(__file__), nargout=0)
 
     def aggregate(self, rankings, algorithm, epsilon, max_iters, approx_step, opto="scipy", true_params=None):
         """
