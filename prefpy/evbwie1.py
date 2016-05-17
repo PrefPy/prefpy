@@ -110,7 +110,7 @@ class EMMMixPLAggregator(aggregate.RankAggregator):
                     z_h1[i][k] = (pi_h[k] * EMMMixPLAggregator.f(x[i], p_h[k])) / denom_sum
 
             # M-Step:
-            test = (g + 1) * inner + (max_iters_em - i - 1) * (inner + 1)
+            test = (g + 1) * inner + (max_iters_em - g - 1) * (inner + 1)
             if test < tot_iters:
                 inner += 1
             for l in range(inner):
