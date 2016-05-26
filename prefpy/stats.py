@@ -41,6 +41,7 @@ def sse(mean, estimator):
     """
     return np.sum((np.asarray(estimator) - np.asarray(mean)) ** 2, axis=0)
 
+#deprecated
 def mix2PL_mse(mean, estimator, m):
     """
     Description:
@@ -60,6 +61,7 @@ def mix2PL_mse(mean, estimator, m):
     mse2 = mse(mean, estimator)
     return min(mse1, mse2)
 
+#deprecated
 def mix2PL_sse(mean, estimator, m):
     """
     Description:
@@ -79,6 +81,7 @@ def mix2PL_sse(mean, estimator, m):
     sse2 = sse(mean, estimator)
     return min(sse1, sse2)
 
+#deprecated
 def mix2PL_wsse(mean, estimator, m):
     """
     Description:
