@@ -71,7 +71,7 @@ class EMMMixPLAggregator(aggregate.RankAggregator):
             sum_out += sum_in
         return sum_out
 
-    def aggregate(self, rankings, K, epsilon, max_iters, epsilon_mm, max_iters_mm):
+    def aggregate(self, rankings, K, epsilon, tot_iters, epsilon_mm, max_iters_em):
         x = rankings # shorter pseudonym for voting data
         self.n = len(rankings) # number of votes
 
@@ -92,7 +92,10 @@ class EMMMixPLAggregator(aggregate.RankAggregator):
         p_h = np.copy(p_h0)
         pi_h = np.copy(pi_h0)
 
-        for g in range(max_iters):
+        inner = tot_iters // max_iters_em
+
+        for g in range(max_iters_em):
+        #for g in range(max_iters):
 
             p_h1 = np.empty((K, self.m))
             pi_h1 = np.empty(K)
@@ -107,7 +110,11 @@ class EMMMixPLAggregator(aggregate.RankAggregator):
                     z_h1[i][k] = (pi_h[k] * EMMMixPLAggregator.f(x[i], p_h[k])) / denom_sum
 
             # M-Step:
-            for l in range(max_iters_mm):
+            test = (g + 1) * inner + (max_iters_em - g - 1) * (inner + 1)
+            if test < tot_iters:
+                inner += 1
+            for l in range(inner):
+            #for l in range(max_iters_mm):
             #for l in range(int(g/50) + 5):
                 for k in range(K):
                     normconst = 0

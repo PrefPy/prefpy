@@ -3,9 +3,9 @@
 # by David R. Hunter, 2004
 
 import numpy as np
-import aggregate
-import plackettluce as pl
-import util
+from . import aggregate
+from . import plackettluce as pl
+from . import util
 
 
 class MMPLAggregator(aggregate.RankAggregator):
@@ -72,7 +72,7 @@ class MMPLAggregator(aggregate.RankAggregator):
 
 def main():
     """Driver function for the computation of the MM algorithm"""
-    
+
     # test example below taken from GMMRA by Azari, Chen, Parkes, & Xia
     cand_set = [0, 1, 2]
     votes = [[0, 1, 2], [1, 2, 0]]
