@@ -24,7 +24,7 @@ if __name__ == "__main__":
               "Topic :: Scientific/Engineering"
           ],
           url=base_url,
-          download_url="{0}/archive/prefpy-{1}.tar.gz".format(base_url, __version__),
+          download_url="{0}/archive/v{1}.tar.gz".format(base_url, __version__),
           author="Peter Piech",
           license="GPL-3",
           packages=["prefpy"],
