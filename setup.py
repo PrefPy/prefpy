@@ -2,7 +2,7 @@ from setuptools import setup
 
 if __name__ == "__main__":
     setup(name="prefpy",
-          version="0.0.1",
+          version="0.8",
           description="Rank aggregation algorithms",
           classifiers=[
               "Development Status :: 3 - Alpha",
