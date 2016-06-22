@@ -7,6 +7,7 @@ Rank aggregation algorithms in the computer science field of computational socia
 What's New
 ==========
 
+- Released on Python Package Index (PyPI) for public download and install with pip (see Installation below)
 - Experiments and tests have been factored out of the repository (now located at https://github.com/pdpiech/prefpy-experiments)
 - Generalized method of moments algorithm for mixtures of Plackett-Luce models
 - Implementation of EMM algorithm for mixtures of Plackett-Luce by Gormley & Murphy
@@ -26,10 +27,10 @@ Installation
 
 - Use of MATLAB optimization in this package requires Python 3.4 due to lack of support yet for Python 3.5 by the MATLAB Engine
 
-Install by running setup.py with Python 3.4 (or greater) with the command
+Install directly from PyPI using pip for Python 3.4 (or greater) with the command
 
-    python3 setup.py install
+    pip install prefpy
 
-Symlink install while developing to keep changes in the code instead with the command
+Symlink install while developing to keep changes in the code instead by downloading from GitHub and run setup.py with the command
 
     python3 setup.py develop
