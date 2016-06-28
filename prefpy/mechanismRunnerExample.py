@@ -8,6 +8,9 @@ from profile import Profile
 from preference import Preference
 import mechanism
 import mov
+import utilityFunction
+import mechanismMcmc
+import mechanismMcmcSampleGenerator
 
 # First, let's generate a two-dimensional dictionary to represent the ranking {cand1 > cand2 > cand3}.
 wmgMap1 = dict()
@@ -80,3 +83,16 @@ print mechanism.getMov(profile)
 # We can also call margin of victory functions directly without constructing a mechanism object.
 # Let's print the margin of victory using Borda rule.
 print mov.movBorda(profile)
+
+# Now we are going to use MCMC sampling to approximate the Bayesian loss of each candiate.
+
+# First, let's create a zero-one loss function.
+zeroOneLoss = utilityFunction.UtilityFunctionMallowsZeroOne()
+
+# Then, we will create a sample generation mechanism.
+sampleGen = mechanismMcmcSampleGenerator.MechanismMcmcSampleGeneratorMallowsJumpingDistribution(profile.getWmg(True), 0.9)
+
+# Now, lets see the results of both MCMC approximation and brute force.
+mcmc = mechanismMcmc.MechanismMcmcMallows(0.9, zeroOneLoss, 1, 10000, 0, sampleGen)
+print mcmc.getWinners(profile)
+print mcmc.getWinnersBruteForce(profile)
