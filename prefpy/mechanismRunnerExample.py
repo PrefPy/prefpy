@@ -77,12 +77,12 @@ print(profile.getOrderVectors())
 mechanism = mechanism.MechanismPlurality()
 
 # Let's print the ouputs of some of the Mechanism object's methods.
-print mechanism.getWinners(profile)
-print mechanism.getMov(profile)
+print(mechanism.getWinners(profile))
+print(mechanism.getMov(profile))
 
 # We can also call margin of victory functions directly without constructing a mechanism object.
 # Let's print the margin of victory using Borda rule.
-print mov.movBorda(profile)
+print(mov.movBorda(profile))
 
 # Now we are going to use MCMC sampling to approximate the Bayesian loss of each candiate.
 
@@ -94,5 +94,5 @@ sampleGen = mechanismMcmcSampleGenerator.MechanismMcmcSampleGeneratorMallowsJump
 
 # Now, lets see the results of both MCMC approximation and brute force.
 mcmc = mechanismMcmc.MechanismMcmcMallows(0.9, zeroOneLoss, 1, 10000, 0, sampleGen)
-print mcmc.getWinners(profile)
-print mcmc.getWinnersBruteForce(profile)
+print(mcmc.getWinners(profile))
+print(mcmc.getWinnersBruteForce(profile))

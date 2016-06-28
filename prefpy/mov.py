@@ -140,7 +140,6 @@ def movKApproval(profile, k):
         scoringVector.append(1)
     for i in range(k, profile.numCands):
         scoringVector.append(0)
-    print scoringVector
     return movPosScoring(profile, scoringVector)
 
 def movSimplifiedBucklin(profile):
