@@ -112,18 +112,20 @@ class Preference():
 
     def getOrderVector(self):
         """
-        Returns a list of candidates ordered from most preferred to least. Note that ties are not
-        indicated in the returned list. 
+        Returns a list of lists. Each list represents tiers of candidates. candidates in earlier
+        tiers are preferred to candidates appearing in later tiers. Candidates in the same tier
+        are preferred equally. 
         """
 
         # We sort the candidates based on the number of incoming edges they have in the graph. If 
-        # two candidates have the same number, we assume that they are tied. However, the vector
-        # we return does not indicate the presence of a tie.
+        # two candidates have the same number, we assume that they are tied.
         incEdgesMap = self.getIncEdgesMap()
         sortedKeys = sorted(incEdgesMap.keys(), reverse = True)
         orderVector = []
         for key in sortedKeys:
+            tier = []
             cands = incEdgesMap[key]
             for cand in cands:
-                orderVector.append(cand)
+                tier.append(cand)
+            orderVector.append(tier)
         return orderVector

@@ -43,10 +43,10 @@ class Mechanism():
 
     def getRanking(self, profile):
         """
-        Returns a list that orders all candidates from best to worst given an election profile.
-        This function assumes that getCandScoresMap(profile) is implemented for the child Mechanism
-        class. Note that the returned list gives no indication of ties between candidates. 
-        
+        Returns a list of lists that orders all candidates in tiers from best to worst given an 
+        election profile. This function assumes that getCandScoresMap(profile) is implemented for 
+        the child Mechanism class.
+
         :ivar Profile profile: A Profile object that represents an election profile.
         """
 
@@ -68,9 +68,10 @@ class Mechanism():
         # We put the candidates into our ranking based on the order in which their score appears
         ranking = []
         for candScore in sortedCandScores:
+            currRanking = []
             for cand in reverseCandScoresMap[candScore]:
-                ranking.append(cand)
-
+                currRanking.append(cand)
+            ranking.append(currRanking)
         return ranking
 
 class MechanismPosScoring(Mechanism):
@@ -382,3 +383,117 @@ class MechanismMaximin(Mechanism):
                 maximinScores[cand2] = min(maximinScores[cand2], wmg[cand2][cand1])
 
         return maximinScores
+
+class MechanismSchulze(Mechanism):
+    """
+    The Schulze mechanism.
+    """
+
+    def __init__(self):
+        self.maximizeCandScore = True
+
+    def computeStrongestPaths(self, profile, pairwisePreferences):
+        """
+        Returns a two-dimensional dictionary that associates every pair of candidates, cand1 and 
+        cand2, with the strongest path from cand1 to cand2.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        :ivar dict<int,dict<int,int>> pairwisePreferences: A two-dimensional dictionary that
+            associates every pair of candidates, cand1 and cand2, with number of voters who prefer
+            cand1 to cand2.
+        """
+        cands = profile.candMap.keys()
+        numCands = len(cands)
+
+        # Initialize the two-dimensional dictionary that will hold our strongest paths.
+        strongestPaths = dict()
+        for cand in cands:
+            strongestPaths[cand] = dict()
+
+        for i in range(1, numCands+1):
+            for j in range(1, numCands+1):
+                if (i == j):
+                    continue
+                if pairwisePreferences[i][j] > pairwisePreferences[j][i]:
+                    strongestPaths[i][j] = pairwisePreferences[i][j]
+                else:
+                    strongestPaths[i][j] = 0
+
+        for i in range(1, numCands+1):
+            for j in range(1, numCands+1):
+                if (i == j):
+                    continue
+                for k in range(1, numCands+1):
+                    if (i == k or j == k):
+                        continue
+                    strongestPaths[j][k] = max(strongestPaths[j][k], min(strongestPaths[j][i], strongestPaths[i][k]))
+
+        return strongestPaths
+
+    def computePairwisePreferences(self, profile):
+        """
+        Returns a two-dimensional dictionary that associates every pair of candidates, cand1 and 
+        cand2, with number of voters who prefer cand1 to cand2.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+
+        cands = profile.candMap.keys()
+
+        # Initialize the two-dimensional dictionary that will hold our pairwise preferences.
+        pairwisePreferences = dict()
+        for cand in cands:
+            pairwisePreferences[cand] = dict()
+        for cand1 in cands:    
+            for cand2 in cands:
+                if cand1 != cand2:
+                    pairwisePreferences[cand1][cand2] = 0
+
+        for preference in profile.preferences:
+            wmgMap = preference.wmgMap
+            for cand1, cand2 in itertools.combinations(cands, 2):
+                
+                # If either candidate was unranked, we assume that they are lower ranked than all
+                # ranked candidates.
+                if cand1 not in wmgMap.keys():
+                    if cand2 in wmgMap.keys():
+                        pairwisePreferences[cand2][cand1] += 1 * preference.count
+                elif cand2 not in wmgMap.keys():
+                    if cand1 in wmgMap.keys():
+                        pairwisePreferences[cand1][cand2] += 1 * preference.count
+
+                elif wmgMap[cand1][cand2] == 1:
+                    pairwisePreferences[cand1][cand2] += 1 * preference.count
+                elif wmgMap[cand1][cand2] == -1:
+                    pairwisePreferences[cand2][cand1] += 1 * preference.count
+
+        return pairwisePreferences
+
+    def getCandScoresMap(self, profile):
+        """
+        Returns a dictionary that associates integer representations of each candidate with the
+        number of other candidates for which her strongest path to the other candidate is greater
+        than the other candidate's stronget path to her.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+
+        cands = profile.candMap.keys()
+        pairwisePreferences = self.computePairwisePreferences(profile)
+        strongestPaths = self.computeStrongestPaths(profile, pairwisePreferences)
+
+        # For each candidate, determine how many times p[E,X] >= p[X,E] using a variant of the
+        # Floyd-Warshall algorithm.
+        betterCount = dict()
+        for cand in cands:
+            betterCount[cand] = 0
+        for cand1 in cands:
+            for cand2 in cands:
+                if cand1 == cand2:
+                    continue
+                if strongestPaths[cand1][cand2] >= strongestPaths[cand2][cand1]:
+                    betterCount[cand1] += 1
+
+        return betterCount
+
+
