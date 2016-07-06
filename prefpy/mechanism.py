@@ -335,19 +335,18 @@ class MechanismCopeland(Mechanism):
         preferenceCounts = profile.getPreferenceCounts()
 
         # For each pair of candidates, calculate the number of votes in which one beat the other.
-        for i in range(0, len(profile.preferences)):
-            wmgMap = profile.preferences[i].wmgMap
-            for cand1, cand2 in itertools.combinations(wmgMap.keys(), 2):
-                if cand2 in wmgMap[cand1].keys():
-                    if wmgMap[cand1][cand2] > 0:
-                        copelandScores[cand1] += 1.0*preferenceCounts[i]
-                    elif wmgMap[cand1][cand2] < 0:
-                        copelandScores[cand2] += 1.0*preferenceCounts[i]
+        wmgMap = profile.getWmg()
+        for cand1, cand2 in itertools.combinations(wmgMap.keys(), 2):
+            if cand2 in wmgMap[cand1].keys():
+                if wmgMap[cand1][cand2] > 0:
+                    copelandScores[cand1] += 1.0
+                elif wmgMap[cand1][cand2] < 0:
+                    copelandScores[cand2] += 1.0
             
-                    #If a pair of candidates is tied, we add alpha to their score for each vote.
-                    else:
-                        copelandScores[cand1] += alpha*preferenceCounts[i]
-                        copelandScores[cand2] += alpha*preferenceCounts[i]
+                #If a pair of candidates is tied, we add alpha to their score for each vote.
+                else:
+                    copelandScores[cand1] += self.alpha
+                    copelandScores[cand2] += self.alpha
 
         return copelandScores
 
