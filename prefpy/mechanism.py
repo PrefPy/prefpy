@@ -72,7 +72,12 @@ class Mechanism():
             for cand in reverseCandScoresMap[candScore]:
                 currRanking.append(cand)
             ranking.append(currRanking)
-        return ranking
+        
+        # Right now we return a list that contains the ranking list. This is for future extensions.
+        results = []
+        results.append(ranking)
+
+        return results
 
 class MechanismPosScoring(Mechanism):
     """
