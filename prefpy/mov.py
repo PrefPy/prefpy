@@ -11,8 +11,7 @@ import mechanism
 def movPosScoring(profile, scoringVector):
     """
     Returns an integer that is equal to the margin of victory of a profile, that is, the number of
-    votes needed to be changed to change to outcome when using the positional scoring 
-    rule into a draw.
+    votes needed to be changed to change to winner when using the positional scoring rule.
 
     :ivar Profile profile: A Profile object that represents an election profile.
     :ivar list<int> scoringVector: A list of integers (or floats) that give the scores assigned to
@@ -29,12 +28,13 @@ def movPosScoring(profile, scoringVector):
     posScoring = mechanism.MechanismPosScoring(scoringVector)
     winners = posScoring.getWinners(profile)
     if len(winners) > 1:
-        return 0
+        return 1
 
     rankMaps = profile.getRankMaps()
     preferenceCounts = profile.getPreferenceCounts()
     winner = winners[0]
     candScoresMap = posScoring.getCandScoresMap(profile)
+    print candScoresMap
     mov = float('inf')
 
     # For each candidate, calculate the difference in scores that changing a vote can do.
@@ -65,7 +65,7 @@ def movPosScoring(profile, scoringVector):
 
             # Check if changing all instances of the current vote can change the winner.
             if (ttlChange*scoreEffect[2] >= winnerScore-candScore):
-                votesNeeded += math.ceil(float(winnerScore-candScore)/float(ttlChange))
+                votesNeeded += math.ceil(float(winnerScore-candScore)/float(ttlChange))+1
                 break
 
             # Otherwise, update the election simulation with the effects of the current votes.
@@ -87,7 +87,7 @@ def movPosScoring(profile, scoringVector):
 def movPlurality(profile):
     """
     Returns an integer that is equal to the margin of victory, that is, the number of votes needed
-    to be changed to change to outcome into a draw when using the plurality rule.
+    to be changed to change the winner when using the plurality rule.
 
     :ivar Profile profile: A Profile object that represents an election profile.
     """
@@ -101,7 +101,7 @@ def movPlurality(profile):
 def movVeto(profile):
     """
     Returns an integer that is equal to the margin of victory, that is, the number of votes needed
-    to be changed to change to outcome into a draw when using the veto rule.
+    to be changed to change the winner when using the veto rule.
 
     :ivar Profile profile: A Profile object that represents an election profile.
     """
@@ -115,7 +115,7 @@ def movVeto(profile):
 def movBorda(profile):
     """
     Returns an integer that is equal to the margin of victory, that is, the number of votes needed
-    to be changed to change to outcome into a draw when using the veto rule.
+    to be changed to change the winner when using the veto rule.
 
     :ivar Profile profile: A Profile object that represents an election profile.
     """
@@ -130,7 +130,7 @@ def movBorda(profile):
 def movKApproval(profile, k):
     """
     Returns an integer that is equal to the margin of victory, that is, the number of votes needed
-    to be changed to change to outcome into a draw when using the k-approval rule.
+    to be changed to change the winner when using the k-approval rule.
 
     :ivar Profile profile: A Profile object that represents an election profile.
     :ivar int k: A value for k.
@@ -145,7 +145,7 @@ def movKApproval(profile, k):
 def movSimplifiedBucklin(profile):
     """
     Returns an integer that is equal to the margin of victory of the election profile, that is,
-    the number of votes needed to be changed to change to outcome into a draw.
+    the number of votes needed to be changed to change the winner.
 
     :ivar Profile profile: A Profile object that represents an election profile.
     """
@@ -160,7 +160,7 @@ def movSimplifiedBucklin(profile):
     bucklin = mechanism.MechanismSimplifiedBucklin()
     winners = bucklin.getWinners(profile)
     if len(winners) > 1:
-        return 0
+        return 1
 
     rankMaps = profile.getRankMaps()
     preferenceCounts = profile.getPreferenceCounts()
