@@ -247,7 +247,10 @@ class Profile():
     def importPreflibFile(self, fileName):
         """
         Imports a preflib format file that contains all the information of a Profile. This function
-        will completely override all members of the current Profile object.
+        will completely override all members of the current Profile object. Currently, we assume 
+        that in an election where incomplete ordering are allowed, if a voter ranks only one 
+        candidate, then the voter did not prefer any candidates over another. This may lead to some
+        discrepancies when importing and exporting a .toi preflib file or a .soi preflib file.
 
         :ivar str fileName: The name of the input file to be imported.
         """
