@@ -5,6 +5,7 @@ import copy
 import io
 import itertools
 import math
+import json
 from preference import Preference
 
 class Profile():
@@ -144,3 +145,194 @@ class Profile():
                     wmgMap[cand1][cand2] = float(wmgMap[cand1][cand2])/maxEdge
         
         return wmgMap
+
+    #----------------------------------------------------------------------------------------------
+
+    def genWmgMapFromRankMap(self, rankMap):
+        """
+        Converts a single rankMap into a weighted majorty graph (wmg). We return the wmg as a 
+        two-dimensional dictionary that associates integer representations of each pair of candidates,
+        cand1 and cand2, with the number of times cand1 is ranked above cand2 minus the number of times
+        cand2 is ranked above cand1. This is called by importPreflibFile().
+
+        :ivar list<int> candList: Contains integer representations of each candidate.
+        :ivar dict<int,int> rankMap: Associates integer representations of each candidate with its
+            ranking in a single vote.
+        """
+
+        wmgMap = dict()
+        for cand1, cand2 in itertools.combinations(rankMap.keys(), 2):
+
+            # Check whether or not the candidates are already present in the dictionary.
+            if cand1 not in wmgMap.keys():
+                wmgMap[cand1] = dict()
+            if cand2 not in wmgMap.keys():
+                wmgMap[cand2] = dict()
+                
+            # Check which candidate is ranked above the other. Then assign 1 or -1 as appropriate.       
+            if rankMap[cand1] < rankMap[cand2]:
+                wmgMap[cand1][cand2] = 1
+                wmgMap[cand2][cand1] = -1 
+            elif rankMap[cand1] > rankMap[cand2]:
+                wmgMap[cand1][cand2] = -1
+                wmgMap[cand2][cand1] = 1
+
+            # If the two candidates are tied, We make 0 the number of edges between them.
+            elif rankMap[cand1] == rankMap[cand2]:
+                wmgMap[cand1][cand2] = 0
+                wmgMap[cand2][cand1] = 0
+
+        return wmgMap
+
+    def exportPreflibFile(self, fileName):
+        """
+        Exports a preflib format file that contains all the information of the current Profile.
+
+        :ivar str fileName: The name of the output file to be exported.
+        """
+
+        elecType = self.getElecType()
+
+        if elecType != "soc" and elecType != "toc" and elecType != "soi" and elecType != "toi":
+            print("ERROR: printing current type to preflib format is not supported")
+            exit()
+
+        # Generate a list of reverse rankMaps, one for each vote. This will allow us to easiliy
+        # identify ties.
+        reverseRankMaps = self.getReverseRankMaps()
+
+        outfileObj = open(fileName, 'w')
+
+        # Print the number of candidates and the integer representation and name of each candidate.
+        outfileObj.write(str(self.numCands))
+        for candInt, cand in self.candMap.items():
+            outfileObj.write("\n" + str(candInt) + "," + cand)
+
+        # Sum up the number of preferences that are represented.
+        preferenceCount = 0
+        for preference in self.preferences:
+            preferenceCount += preference.count
+
+        # Print the number of voters, the sum of vote count, and the number of unique orders.
+        outfileObj.write("\n" + str(self.numVoters) + "," + str(preferenceCount) + "," + str(len(self.preferences)))
+
+        for i in range(0, len(reverseRankMaps)):
+
+            # First, print the number of times the preference appears.
+            outfileObj.write("\n" + str(self.preferences[i].count))
+            
+            reverseRankMap = reverseRankMaps[i]
+
+            # We sort the positions in increasing order and print the candidates at each position
+            # in order.
+            sortedKeys = sorted(reverseRankMap.keys())
+            for key in sortedKeys:
+
+                cands = reverseRankMap[key]
+
+                # If only one candidate is in a particular position, we assume there is no tie.
+                if len(cands) == 1:
+                    outfileObj.write("," + str(cands[0]))
+
+                # If more than one candidate is in a particular position, they are tied. We print
+                # brackets around the candidates.
+                elif len(cands) > 1:
+                    outfileObj.write(",{" + str(cands[0]))
+                    for j in range(1, len(cands)):
+                        outfileObj.write("," + str(cands[j]))
+                    outfileObj.write("}")
+                    
+        outfileObj.close()            
+
+    def importPreflibFile(self, fileName):
+        """
+        Imports a preflib format file that contains all the information of a Profile. This function
+        will completely override all members of the current Profile object.
+
+        :ivar str fileName: The name of the input file to be imported.
+        """
+
+        # Use the functionality found in io to read the file.
+        elecFileObj = open(fileName, 'r')
+        self.candMap, rankMaps, wmgMapsCounts, self.numVoters = io.read_election_file(elecFileObj)
+        elecFileObj.close()
+
+        self.numCands = len(self.candMap.keys())
+
+        # Go through the rankMaps and generate a wmgMap for each vote. Use the wmgMap to create a
+        # Preference object.
+        self.preferences = []
+        for i in range(0, len(rankMaps)):
+            wmgMap = self.genWmgMapFromRankMap(rankMaps[i])
+            self.preferences.append(Preference(wmgMap, wmgMapsCounts[i]))
+
+    def exportJsonFile(self, fileName):
+        """
+        Exports a json file that contains all the information of the current Profile.
+
+        :ivar str fileName: The name of the output file to be exported.
+        """
+
+        # Because our Profile class is not directly JSON serializable, we exporrt the underlying 
+        # dictionary. 
+        data = dict()
+        for key in self.__dict__.keys():
+            if key != "preferences":
+                data[key] = self.__dict__[key]
+        
+        # The Preference class is also not directly JSON serializable, so we export the underlying
+        # dictionary for each Preference object.
+        preferenceDicts = []
+        for preference in self.preferences:
+            preferenceDict = dict()
+            for key in preference.__dict__.keys():
+                preferenceDict[key] = preference.__dict__[key]
+            preferenceDicts.append(preferenceDict)
+        data["preferences"] = preferenceDicts
+
+        outfile = open(fileName, 'w')
+        json.dump(data, outfile)
+        outfile.close()
+
+    def importJsonFile(self, fileName):
+        """
+        Imports a json file that contains all the information of a Profile. This function will
+        completely override all members of the current Profile object.
+
+        :ivar str fileName: The name of the input file to be imported.
+        """
+
+        infile = open(fileName)
+        data = json.load(infile)
+        infile.close()
+        
+        self.numCands = int(data["numCands"])
+        self.numVoters = int(data["numVoters"])
+
+        # Because the json.load function imports everything as unicode strings, we will go through
+        # the candMap dictionary and convert all the keys to integers and convert all the values to
+        # ascii strings.
+        candMap = dict()
+        for key in data["candMap"].keys():
+            candMap[int(key)] = data["candMap"][key].encode("ascii")
+        self.candMap = candMap
+        
+        # The Preference class is also not directly JSON serializable, so we exported the 
+        # underlying dictionary for each Preference object. When we import, we will create a 
+        # Preference object from these dictionaries.
+        self.preferences = []
+        for preferenceMap in data["preferences"]:
+            count = int(preferenceMap["count"])
+
+            # Because json.load imports all the items in the wmgMap as unicode strings, we need to
+            # convert all the keys and values into integers.
+            preferenceWmgMap = preferenceMap["wmgMap"]
+            wmgMap = dict()
+            for key in preferenceWmgMap.keys():
+                wmgMap[int(key)] = dict()
+                for key2 in preferenceWmgMap[key].keys():
+                    wmgMap[int(key)][int(key2)] = int(preferenceWmgMap[key][key2])
+
+            self.preferences.append(Preference(wmgMap, count))
+
+    #----------------------------------------------------------------------------------------------
