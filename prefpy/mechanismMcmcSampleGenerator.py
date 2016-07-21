@@ -197,7 +197,7 @@ class MechanismMcmcSampleGeneratorMallowsPlakettLuce(MechanismMcmcSampleGenerato
             ranking in a vote, from first to last.
         """
 
-        W, WProb = self.drawRankingPlakettLuce(self.plakettLuceProbs, V)
+        W, WProb = self.drawRankingPlakettLuce(V)
         VProb = self.calcProbOfVFromW(V, W)
         acceptanceRatio = self.calcAcceptanceRatio(V, W)
         prob = min(1.0, acceptanceRatio * (VProb/WProb))
@@ -226,7 +226,7 @@ class MechanismMcmcSampleGeneratorMallowsPlakettLuce(MechanismMcmcSampleGenerato
 
         return weights
 
-    def drawRankingPlakettLuce(self, probs, rankList):
+    def drawRankingPlakettLuce(self, rankList):
         """
         Given an order vector over the candidates, draw candidates to generate a new order vector.
 
@@ -240,8 +240,14 @@ class MechanismMcmcSampleGeneratorMallowsPlakettLuce(MechanismMcmcSampleGenerato
         remainingCands = copy.deepcopy(rankList)
         probsCopy = copy.deepcopy(self.plakettLuceProbs)
         totalProb = sum(probs)
+
+        # We will use prob to iteratively calculate the probabilty that we draw the order vector
+        # that we end up drawing.
         prob = 1.0
+        
         while (len(newRanking) < numCands):
+
+            # We generate a random number from 0 to 1, and use it to select a candidate. 
             rand = random.random()
             threshold = 0.0
             for i in range(0, len(probsCopy)):
@@ -253,6 +259,7 @@ class MechanismMcmcSampleGeneratorMallowsPlakettLuce(MechanismMcmcSampleGenerato
                     totalProb = totalProb - probsCopy[i]
                     probsCopy.pop(i)
                     break
+
         return newRanking, prob
 
     def calcProbOfVFromW(self, V, W):
@@ -280,6 +287,38 @@ class MechanismMcmcSampleGeneratorMallowsPlakettLuce(MechanismMcmcSampleGenerato
             totalWeight = totalWeight - weights[alt-1]
     
         return prob
+
+class MechanismMcmcSampleGeneratorCondorcet(MechanismMcmcSampleGenerator):
+
+    def getNextSample(self, V):
+        """
+        Generate the next sample for the condorcet model. This algorithm is described in "Computing
+        Optimal Bayesian Decisions for Rank Aggregation via MCMC Sampling," and is adapted from 
+        code written by Lirong Xia.
+        
+        :ivar list<list<int> V: A two-dimensional list that for every pair of candidates cand1 and 
+            cand2, V[cand1][cand2] contains 1 if cand1 is ranked above cand2 more times than cand2
+            is ranked above cand1 and 0 otherwise.
+        """
+
+        cands = range(len(self.wmg))
+        W = copy.deepcopy(V)
+        allPairs = itertools.combinations(cands, 2)
+        for pair in allPairs:
+            a = pair[0]
+            b = pair[1]
+            if random.random() < 1.0/(1.0+pow(self.phi,self.wmg[a+1][b+1])):
+                W[a][b] = 1
+                W[b][a] = 0
+            else:
+                W[a][b] = 0
+                W[b][a] = 1
+        prMW = 1
+        prMV = 1
+        prob = min(1.0, prMW/prMV)
+        if random.random() <= prob:
+            V = W
+        return V
 
 
 

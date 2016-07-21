@@ -127,7 +127,7 @@ class UtilityFunctionMallowsZeroOne(UtilityFunctionMallowsPosScoring):
             scoringVector.append(0)
         return scoringVector
 
-class UtilFunctionCondorcetTopK(UtilityFunction):
+class UtilityFunctionCondorcetTopK(UtilityFunction):
     """
     The top-k utility function for the Condorcet model. By default, this will be constructed as a
     gain function.
@@ -139,14 +139,15 @@ class UtilFunctionCondorcetTopK(UtilityFunction):
 
     def getUtilities(self, decision, binaryRelations):
         """
-        Returns a floats that contains the utilities of every candidate in the decision.
+        Returns a floats that contains the utilities of every candidate in the decision. This was 
+        adapted from code written by Lirong Xia.
 
         :ivar list<int> decision: Contains a list of integer representations of candidates in the 
             current decision.
         :ivar list<list,int> binaryRelations: A two-dimensional array whose number of rows and 
             colums is equal to the number of candidates. For each pair of candidates, cand1 and
             cand2, binaryRelations[cand1-1][cand2-1] contains 1 if cand1 is ranked above cand2
-            and -1 otherwise.
+            and 0 otherwise.
         """
 
         m = len(binaryRelations)
@@ -163,7 +164,7 @@ class UtilFunctionCondorcetTopK(UtilityFunction):
                         if j not in tops:
                             tops.append(j)
                 index += 1
-            if len(tops) <= k:
+            if len(tops) <= self.k:
                 if self.isLoss == False:
                     utilities.append(1.0)
                 elif self.isLoss == True:
