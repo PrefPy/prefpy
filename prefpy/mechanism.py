@@ -122,9 +122,9 @@ class MechanismPosScoring(Mechanism):
         :ivar Profile profile: A Profile object that represents an election profile.
         """
 
-        # Currently, we expect the profile to contain strict complete ordering over candidates.
+        # Currently, we expect the profile to contain complete ordering over candidates.
         elecType = profile.getElecType()
-        if elecType != "soc":
+        if elecType != "soc" and elecType != "toc":
             print("ERROR: unsupported election type")
             exit()
 
@@ -194,10 +194,12 @@ class MechanismVeto(MechanismPosScoring):
         :ivar Profile profile: A Profile object that represents an election profile.
         """
 
+        numTiers = len(set(profile.getRankMaps()[0].values()))
         scoringVector = []
-        for i in range(0, profile.numCands-1):
+        for i in range(0, numTiers - 1):
             scoringVector.append(1)
-        scoringVector.append(0)
+        for i in range(numTiers - 1, profile.numCands):
+            scoringVector.append(0)
         return scoringVector
 
 class MechanismBorda(MechanismPosScoring):
@@ -267,9 +269,9 @@ class MechanismSimplifiedBucklin(Mechanism):
         :ivar Profile profile: A Profile object that represents an election profile.
         """
 
-        # Currently, we expect the profile to contain strict complete ordering over candidates.
+        # Currently, we expect the profile to contain complete ordering over candidates.
         elecType = profile.getElecType()
-        if elecType != "soc":
+        if elecType != "soc" and elecType != "toc":
             print("ERROR: unsupported profile type")
             exit()
         
@@ -310,7 +312,7 @@ class MechanismCopeland(Mechanism):
 
     def __init__(self, alpha):
         self.maximizeCandScore = True
-        self.alpha = True
+        self.alpha = 0.5
 
     def getCandScoresMap(self, profile):
         """
@@ -500,4 +502,31 @@ class MechanismSchulze(Mechanism):
 
         return betterCount
 
+def getKendallTauScore(myResponse, otherResponse):
+    """
+    Returns the Kendall Tau Score
+    """
+    # variables
+    kt = 0
+    list1 = myResponse.values()
+    list2 = otherResponse.values()
+    
+    if len(list1) <= 1:
+        return kt
 
+    #runs through list1
+    for itr1 in range(0, len(list1) - 1):
+        #runs through list2
+        for itr2 in range(itr1 + 1, len(list2)):
+            # checks if there is a discrepancy. If so, adds
+            if ((list1[itr1] > list1[itr2]
+                and list2[itr1] < list2[itr2])
+            or (list1[itr1] < list1[itr2]
+                and list2[itr1] > list2[itr2])):
+
+                kt += 1
+    # normalizes between 0 and 1
+    kt = (kt * 2) / (len(list1) * (len(list1) - 1))
+
+    #returns found value
+    return kt
