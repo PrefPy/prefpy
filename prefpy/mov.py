@@ -18,9 +18,9 @@ def movPosScoring(profile, scoringVector):
         each position in a ranking from first to last.
     """
 
-    # Currently, we expect the profile to contain strict complete ordering over candidates.
+    # Currently, we expect the profile to contain complete ordering over candidates.
     elecType = profile.getElecType()
-    if elecType != "soc":
+    if elecType != "soc" and elecType != "toc":
         print("ERROR: unsupported election type")
         exit()
 

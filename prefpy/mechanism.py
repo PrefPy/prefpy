@@ -95,7 +95,7 @@ class MechanismPosScoring(Mechanism):
 
     def isProfileValid(self, profile):
         elecType = profile.getElecType()
-        if elecType != "soc":
+        if elecType != "soc" and elecType != "toc":
             return False
         return True
 
