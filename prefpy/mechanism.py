@@ -246,6 +246,9 @@ class MechanismKApproval(MechanismPosScoring):
         :ivar Profile profile: A Profile object that represents an election profile.
         """
         
+        if self.k > profile.numCands:
+            self.k = profile.numCands
+
         scoringVector = []
         for i in range(0, self.k):
             scoringVector.append(1)
