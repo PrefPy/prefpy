@@ -4,9 +4,8 @@ Author: Kevin J. Hwang
 import io
 import math
 import itertools
-import mov
-from profile import Profile
-from preference import Preference
+from .preference import Preference
+from .profile import Profile
 
 class Mechanism():
     """
@@ -153,7 +152,7 @@ class MechanismPosScoring(Mechanism):
 
         :ivar Profile profile: A Profile object that represents an election profile.
         """
-
+        from . import mov
         return mov.movPosScoring(profile, self.getScoringVector(profile))
 
 class MechanismPlurality(MechanismPosScoring):
@@ -305,7 +304,7 @@ class MechanismSimplifiedBucklin(Mechanism):
 
         :ivar Profile profile: A Profile object that represents an election profile.
         """
-
+        from . import mov
         return mov.movSimplifiedBucklin(profile)
 
 class MechanismCopeland(Mechanism):

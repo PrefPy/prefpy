@@ -4,9 +4,7 @@ Author: Kevin J. Hwang
 import io
 import math
 import itertools
-from profile import Profile
-from preference import Preference
-import mechanism
+from .preference import Preference
 
 def movPosScoring(profile, scoringVector):
     """
@@ -25,6 +23,7 @@ def movPosScoring(profile, scoringVector):
         exit()
 
     # If the profile already results in a tie, return 0.
+    from . import mechanism
     posScoring = mechanism.MechanismPosScoring(scoringVector)
     winners = posScoring.getWinners(profile)
     if len(winners) > 1:
@@ -34,7 +33,7 @@ def movPosScoring(profile, scoringVector):
     preferenceCounts = profile.getPreferenceCounts()
     winner = winners[0]
     candScoresMap = posScoring.getCandScoresMap(profile)
-    print candScoresMap
+    print(candScoresMap)
     mov = float('inf')
 
     # For each candidate, calculate the difference in scores that changing a vote can do.
