@@ -34,8 +34,8 @@ def movPosScoring(profile, scoringVector):
     winner = winners[0]
     candScoresMap = posScoring.getCandScoresMap(profile)
     print(candScoresMap)
-    mov = float('inf')
-
+    #mov = float('inf')
+    mov = -1
     # For each candidate, calculate the difference in scores that changing a vote can do.
     for cand in profile.candMap.keys():
         scoreEffects = []
@@ -182,7 +182,7 @@ def movSimplifiedBucklin(profile):
             rankCount[rank] += preferenceCounts[i]
         rankCounts[cand] = rankCount
 
-    mov = float('inf')
+    mov = -1
     for cand in profile.candMap.keys():
         if cand == winner:
             continue
