@@ -34,8 +34,7 @@ def movPosScoring(profile, scoringVector):
     winner = winners[0]
     candScoresMap = posScoring.getCandScoresMap(profile)
     print(candScoresMap)
-    #mov = float('inf')
-    mov = -1
+    mov = float('inf')
     # For each candidate, calculate the difference in scores that changing a vote can do.
     for cand in profile.candMap.keys():
         scoreEffects = []
@@ -80,7 +79,9 @@ def movPosScoring(profile, scoringVector):
                 break
         
         mov = min(mov,votesNeeded)
-
+        
+    if mov == float('inf'):
+        mov = -1;
     return int(mov)
 
 def movPlurality(profile):
@@ -182,7 +183,7 @@ def movSimplifiedBucklin(profile):
             rankCount[rank] += preferenceCounts[i]
         rankCounts[cand] = rankCount
 
-    mov = -1
+    mov = float('inf')
     for cand in profile.candMap.keys():
         if cand == winner:
             continue
@@ -204,7 +205,8 @@ def movSimplifiedBucklin(profile):
             # The margin of victory is the minimum number of votes needed for the above to occur
             # given any candidate and any two positions l and l-1.
             mov = min(mov, max(candVotesChanged, winnerVotesChanged))
-
+    if mov == float('inf'):
+        mov = -1;
     return int(mov)
 
 
