@@ -138,21 +138,31 @@ def top3_full(params, moments):
     """
     params = np.asarray(params)
     alpha = params[0]
-    a = params[1:5]
-    b = params[5:]
+    half = int((len(params) - 1) / 2)
+    a = params[1:half + 1]
+    b = params[half + 1:]
     p = np.asarray(moments)
-    p1 = alpha*a+(1-alpha)*b-p[:4]
-    p21 = alpha*a[0]*a[1:]/(1-a[0])+(1-alpha)*b[0]*b[1:]/(1-b[0])-p[4:7]
-    p22 = alpha*a[1]*np.hstack((a[0],a[2:]))/(1-a[1])+(1-alpha)*b[1]*np.hstack((b[0],b[2:]))/(1-b[1])-p[7:10]
-    p23 = alpha*a[2]*np.hstack((a[:2],a[3]))/(1-a[2])+(1-alpha)*b[2]*np.hstack((b[:2],b[3]))/(1-b[2])-p[10:13]
-    p24 = alpha*a[3]*a[:3]/(1-a[3])+(1-alpha)*b[3]*b[:3]/(1-b[3])-p[13:16]
-    p3 = np.array([
-        alpha*a[0]*a[2]*a[3]/(1-a[2])/(a[0]+a[1])+(1-alpha)*b[0]*b[2]*b[3]/(1-b[2])/(b[0]+b[1])-p[16],
-        alpha*a[0]*a[1]*a[3]/(1-a[3])/(a[1]+a[2])+(1-alpha)*b[0]*b[1]*b[3]/(1-b[3])/(b[1]+b[2])-p[17],
-        alpha*a[0]*a[1]*a[2]/(1-a[0])/(a[3]+a[2])+(1-alpha)*b[0]*b[1]*b[2]/(1-b[0])/(b[3]+b[2])-p[18],
-        alpha*a[2]*a[1]*a[3]/(1-a[1])/(a[0]+a[3])+(1-alpha)*b[2]*b[1]*b[3]/(1-b[1])/(b[0]+b[3])-p[19]
-        ])
-    allp = np.concatenate((p1,p21,p22,p23,p24,p3))
+    p1 = list(alpha*a+(1-alpha)*b-p[:half])
+    for i in range(0, half):
+        p1 += list(alpha*a[i]*np.hstack((a[:i],a[i + 1:]))/(1-a[i])
+            +(1-alpha)*b[i]*np.hstack((b[:i],b[i + 1:]))/(1-b[i])
+            -p[half + (half - 1) * i:half + (half - 1) * (i + 1)])
+    p2 = []
+    for i in range(0, half):
+        num_a = alpha
+        num_b = 1 - alpha
+        for j in range(0, half):
+            num_a *= a[j]
+            num_b *= b[j]
+            if j > i:
+                num_a /= np.sum(np.concatenate((a[j:], a[:i])))
+                num_b /= np.sum(np.concatenate((b[j:], b[:i])))
+            elif j < i:
+                num_a /= np.sum(a[j:i])
+                num_b /= np.sum(b[j:i])
+        p2.append(num_a + num_b - p[half + (half * (half - 1)) + i])
+    p3 = np.array(p2)
+    allp = np.concatenate((p1,p3))
     return np.sum(allp**2)
 
 def top3_full_unconstrained(params, moments):

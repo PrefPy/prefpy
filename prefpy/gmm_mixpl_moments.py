@@ -17,30 +17,30 @@ def top2_reduced(votes):
     """
     res = np.zeros(12)
     for vote in votes:
-        # the top ranked alternative is in vote[0], second in vote[1]
-        if vote[0] == 0: # i.e. the first alt is ranked first
+        # the top ranked alternative is in vote[0][0], second in vote[1][0]
+        if vote[0][0] == 0: # i.e. the first alt is ranked first
             res[0] += 1
-            if vote[1] == 2:
+            if vote[1][0] == 2:
                 res[4] += 1
-            elif vote[1] == 3:
+            elif vote[1][0] == 3:
                 res[5] += 1
-        elif vote[0] == 1:
+        elif vote[0][0] == 1:
             res[1] += 1
-            if vote[1] == 0:
+            if vote[1][0] == 0:
                 res[6] += 1
-            elif vote[1] == 3:
+            elif vote[1][0] == 3:
                 res[7] += 1
-        elif vote[0] == 2:
+        elif vote[0][0] == 2:
             res[2] += 1
-            if vote[1] == 0:
+            if vote[1][0] == 0:
                 res[8] += 1
-            elif vote[1] == 1:
+            elif vote[1][0] == 1:
                 res[9] += 1
-        elif vote[0] == 3:
+        elif vote[0][0] == 3:
             res[3] += 1
-            if vote[1] == 1:
+            if vote[1][0] == 1:
                 res[10] += 1
-            elif vote[1] == 2:
+            elif vote[1][0] == 2:
                 res[11] += 1
     res /= len(votes)
     return res
@@ -55,38 +55,38 @@ def top2_full(votes):
     """
     res = np.zeros(16)
     for vote in votes:
-        # the top ranked alternative is in vote[0], second in vote[1]
-        if vote[0] == 0: # i.e. the first alt is ranked first
+        # the top ranked alternative is in vote[0][0], second in vote[1][0]
+        if vote[0][0] == 0: # i.e. the first alt is ranked first
             res[0] += 1
-            if vote[1] == 1: # i.e. the second alt is ranked second
+            if vote[1][0] == 1: # i.e. the second alt is ranked second
                 res[4] += 1
-            elif vote[1] == 2:
+            elif vote[1][0] == 2:
                 res[5] += 1
-            elif vote[1] == 3:
+            elif vote[1][0] == 3:
                 res[6] += 1
-        elif vote[0] == 1:
+        elif vote[0][0] == 1:
             res[1] += 1
-            if vote[1] == 0:
+            if vote[1][0] == 0:
                 res[7] += 1
-            elif vote[1] == 2:
+            elif vote[1][0] == 2:
                 res[8] += 1
-            elif vote[1] == 3:
+            elif vote[1][0] == 3:
                 res[9] += 1
-        elif vote[0] == 2:
+        elif vote[0][0] == 2:
             res[2] += 1
-            if vote[1] == 0:
+            if vote[1][0] == 0:
                 res[10] += 1
-            elif vote[1] == 1:
+            elif vote[1][0] == 1:
                 res[11] += 1
-            elif vote[1] == 3:
+            elif vote[1][0] == 3:
                 res[12] += 1
-        elif vote[0] == 3:
+        elif vote[0][0] == 3:
             res[3] += 1
-            if vote[1] == 0:
+            if vote[1][0] == 0:
                 res[13] += 1
-            elif vote[1] == 1:
+            elif vote[1][0] == 1:
                 res[14] += 1
-            elif vote[1] == 2:
+            elif vote[1][0] == 2:
                 res[15] += 1
     res /= len(votes)
     return res
@@ -101,38 +101,38 @@ def top3_reduced(votes):
     """
     res = np.zeros(16)
     for vote in votes:
-        # the top ranked alternative is in vote[0], second in vote[1]
-        if vote[0] == 0: # i.e. the first alt is ranked first
+        # the top ranked alternative is in vote[0][0], second in vote[1][0]
+        if vote[0][0] == 0: # i.e. the first alt is ranked first
             res[0] += 1
-            if vote[1] == 2:
+            if vote[1][0] == 2:
                 res[4] += 1
-            elif vote[1] == 3:
+            elif vote[1][0] == 3:
                 res[5] += 1
-            elif vote[1] == 1 and vote[2] == 2:
+            elif vote[1][0] == 1 and vote[2][0] == 2:
                 res[14] += 1
-        elif vote[0] == 1:
+        elif vote[0][0] == 1:
             res[1] += 1
-            if vote[1] == 0:
+            if vote[1][0] == 0:
                 res[6] += 1
-            elif vote[1] == 3:
+            elif vote[1][0] == 3:
                 res[7] += 1
-            elif vote[1] == 2 and vote[2] == 3:
+            elif vote[1][0] == 2 and vote[2][0] == 3:
                 res[15] += 1
-        elif vote[0] == 2:
+        elif vote[0][0] == 2:
             res[2] += 1
-            if vote[1] == 0:
+            if vote[1][0] == 0:
                 res[8] += 1
-            elif vote[1] == 1:
+            elif vote[1][0] == 1:
                 res[9] += 1
-            elif vote[1] == 3 and vote[2] == 0:
+            elif vote[1][0] == 3 and vote[2][0] == 0:
                 res[12] += 1
-        elif vote[0] == 3:
+        elif vote[0][0] == 3:
             res[3] += 1
-            if vote[1] == 1:
+            if vote[1][0] == 1:
                 res[10] += 1
-            elif vote[1] == 2:
+            elif vote[1][0] == 2:
                 res[11] += 1
-            elif vote[1] == 0 and vote[2] == 1:
+            elif vote[1][0] == 0 and vote[2][0] == 1:
                 res[13] += 1
     res /= len(votes)
     return res
@@ -145,48 +145,22 @@ def top3_full(votes):
     Parameters:
         votes: ordinal preference data (numpy ndarray of integers)
     """
-    res = np.zeros(20)
+    res = np.zeros(2 * len(votes[0]) + (len(votes[0]) * (len(votes[0]) - 1)))
+    res = np.zeros(2 * len(votes[0]) + (len(votes[0]) * (len(votes[0]) - 1)))
     for vote in votes:
-        # the top ranked alternative is in vote[0], second in vote[1]
-        if vote[0] == 0: # i.e. the first alt is ranked first
-            res[0] += 1
-            if vote[1] == 1: # i.e. the second alt is ranked second
-                res[4] += 1
-                if vote[2] == 2:
-                    res[18] += 1
-            elif vote[1] == 2:
-                res[5] += 1
-            elif vote[1] == 3:
-                res[6] += 1
-        elif vote[0] == 1:
-            res[1] += 1
-            if vote[1] == 0:
-                res[7] += 1
-            elif vote[1] == 2:
-                res[8] += 1
-                if vote[2] == 3:
-                    res[19] += 1
-            elif vote[1] == 3:
-                res[9] += 1
-        elif vote[0] == 2:
-            res[2] += 1
-            if vote[1] == 0:
-                res[10] += 1
-            elif vote[1] == 1:
-                res[11] += 1
-            elif vote[1] == 3:
-                res[12] += 1
-                if vote[2] == 0:
-                    res[16] += 1
-        elif vote[0] == 3:
-            res[3] += 1
-            if vote[1] == 0:
-                res[13] += 1
-                if vote[2] == 1:
-                    res[17] += 1
-            elif vote[1] == 1:
-                res[14] += 1
-            elif vote[1] == 2:
-                res[15] += 1
+        # the top ranked alternative is in vote[0][0], second in vote[1][0]
+        ver = True
+        for i in range(0, len(votes[0])):
+            if vote[i][0] != vote[i - 1][0] + 1 and vote[i][0] != 0:
+                ver = False
+                break
+        if ver:
+            res[len(votes[0]) + (len(votes[0]) * (len(votes[0]) - 1)) + vote[0][0]] += 1
+        res[vote[0][0]] += 1
+        add = 0
+        if vote[0][0] > vote[1][0]:
+            add = 1
+        res[(vote[0][0] + 1) * (len(votes[0]) - 1) + add + vote[1][0]] += 1
+
     res /= len(votes)
     return res

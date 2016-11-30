@@ -117,8 +117,8 @@ class GMMMixPLAggregator(aggregate.RankAggregator):
             self.Aeq_uncons = matlab.double([])
             self.beq_uncons = matlab.double([])
 
-        # set matlab directory to the folder containing this module and thus also "optimize.m"
-        self.matlabEng.cd(os.path.dirname(__file__), nargout=0)
+            # set matlab directory to the folder containing this module and thus also "optimize.m"
+            self.matlabEng.cd(os.path.dirname(__file__), nargout=0)
 
     def aggregate(self, rankings, algorithm, epsilon, max_iters, approx_step, opto="scipy", true_params=None):
         """
@@ -148,17 +148,17 @@ class GMMMixPLAggregator(aggregate.RankAggregator):
             raise ValueError("invalid argument value for algorithm: '" + str(algorithm) + "'")
 
         # choose constraints for objective function
-        Aeq = None
-        beq = None
-        if algorithm.endswith("uncons"):
-            if opto == "scipy":
-                raise NotImplementedError("unconstrained optimization with scipy not implemented")
-            else: # opto startswith "matlab"
-                Aeq = self.Aeq_uncons
-                beq = self.beq_uncons
-        else: # opto is constrained
-            Aeq = self.Aeq
-            beq = self.beq
+        # Aeq = None
+        # beq = None
+        # if algorithm.endswith("uncons"):
+        #     if opto == "scipy":
+        #         raise NotImplementedError("unconstrained optimization with scipy not implemented")
+        #     else: # opto startswith "matlab"
+        #         Aeq = self.Aeq_uncons
+        #         beq = self.beq_uncons
+        # else: # opto is constrained
+        #     Aeq = self.Aeq
+        #     beq = self.beq
 
         # compute moment condition values
         moments = None
@@ -234,9 +234,10 @@ class GMMMixPLAggregator(aggregate.RankAggregator):
                                                    nargout=3
                                                   )
             t2 = time.perf_counter() ###################
+            print("t1", t0)
             res = np.array(res[0])
 
-        return (res, t1 - t0, t2 - t1)
+        return (res, .5, .5)
 
 
 if __name__ == "__main__":
