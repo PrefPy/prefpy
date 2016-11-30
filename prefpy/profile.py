@@ -6,7 +6,7 @@ import io
 import itertools
 import math
 import json
-from preference import Preference
+from .preference import Preference
 
 class Profile():
     """
