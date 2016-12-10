@@ -141,26 +141,34 @@ def top3_reduced(votes):
 def top3_full(votes):
     """
     Description:
-        Top 3 alternatives 20 moment conditions values calculation
+        Top m - 1 alternatives q = m(m - 1) + 2m moment conditions values calculation
     Parameters:
         votes: ordinal preference data (numpy ndarray of integers)
     """
+    #create array of zeros, length = q
     res = np.zeros(2 * len(votes[0]) + (len(votes[0]) * (len(votes[0]) - 1)))
-    res = np.zeros(2 * len(votes[0]) + (len(votes[0]) * (len(votes[0]) - 1)))
+
+    #iterate through each vote
     for vote in votes:
-        # the top ranked alternative is in vote[0][0], second in vote[1][0]
+        #set verification boolean to true
         ver = True
+        #check if vote belongs to c1 < c2 < c3, c2 < c3 < c1... moment
         for i in range(0, len(votes[0])):
             if vote[i][0] != vote[i - 1][0] + 1 and vote[i][0] != 0:
                 ver = False
                 break
         if ver:
             res[len(votes[0]) + (len(votes[0]) * (len(votes[0]) - 1)) + vote[0][0]] += 1
+
+        #increment moment of top ranked choice ranked at the top
         res[vote[0][0]] += 1
+
+        #top two moment
         add = 0
         if vote[0][0] > vote[1][0]:
             add = 1
         res[(vote[0][0] + 1) * (len(votes[0]) - 1) + add + vote[1][0]] += 1
 
-    res /= len(votes)
+    res /= len(votes) #normalize moments
+    
     return res

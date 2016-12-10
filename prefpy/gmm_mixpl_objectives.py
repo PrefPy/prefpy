@@ -131,29 +131,44 @@ def top3_reduced_unconstrained(params, moments):
 def top3_full(params, moments):
     """
     Description:
-        Top 3 alternatives 20 moment conditions objective function
+        Top m - 1 alternatives m(m - 1) + 2m moment conditions objective function
     Parameters:
         params:  all parameters for the Plackett-Luce mixture model (numpy ndarray)
         moments: values of the moment conditions from the data (numpy ndarray)
     """
-    params = np.asarray(params)
-    alpha = params[0]
-    half = int((len(params) - 1) / 2)
-    a = params[1:half + 1]
-    b = params[half + 1:]
-    p = np.asarray(moments)
-    p1 = list(alpha*a+(1-alpha)*b-p[:half])
+    #variables
+    params = np.asarray(params) #convert numpy matrix to list
+    alpha = params[0] #first parameter is the alpha value
+    half = int((len(params) - 1) / 2) #assuming 2 mixtures
+    a = params[1:half + 1] #first mixture
+    b = params[half + 1:] #second mixture
+    p = np.asarray(moments) #convert numpy matrix to list
+    p1 = list(alpha*a+(1-alpha)*b-p[:half]) #new list with one element
+    p2 = [] #new empty list
+
+    #iterate through each 
     for i in range(0, half):
+        #alpha times the score of a given point in mixture one, mutiplied by
+            #each of the other scores, divided by the sum of the other values
+        #Each of these top two plackett-luce values is added to the same values
+            #from the other mixture, then the moment value is subtracted for those
+            #top two from the vote
         p1 += list(alpha*a[i]*np.hstack((a[:i],a[i + 1:]))/(1-a[i])
             +(1-alpha)*b[i]*np.hstack((b[:i],b[i + 1:]))/(1-b[i])
             -p[half + (half - 1) * i:half + (half - 1) * (i + 1)])
-    p2 = []
+
+    #iterate through each value in each mixture
     for i in range(0, half):
+        #begin with alpha values for given mixture
         num_a = alpha
         num_b = 1 - alpha
+
+        #iterate again
         for j in range(0, half):
+            #this eventually multiplies all values to its alpha
             num_a *= a[j]
             num_b *= b[j]
+            #divide by the sum of other values
             if j > i:
                 num_a /= np.sum(np.concatenate((a[j:], a[:i])))
                 num_b /= np.sum(np.concatenate((b[j:], b[:i])))
@@ -162,6 +177,7 @@ def top3_full(params, moments):
                 num_b /= np.sum(b[j:i])
         p2.append(num_a + num_b - p[half + (half * (half - 1)) + i])
     p3 = np.array(p2)
+    #create one array
     allp = np.concatenate((p1,p3))
     return np.sum(allp**2)
 
