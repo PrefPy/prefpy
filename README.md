@@ -10,6 +10,7 @@ What's New
 - Released on Python Package Index (PyPI) for public download and install with pip (see Installation below)
 - Experiments and tests have been factored out of the repository (now located at https://github.com/pdpiech/prefpy-experiments)
 - Generalized method of moments algorithm for mixtures of Plackett-Luce models
+- GMM algorithm implemented for OPRA (https://github.com/PrefPy/opra/)
 - Implementation of EMM algorithm for mixtures of Plackett-Luce by Gormley & Murphy
 
 
