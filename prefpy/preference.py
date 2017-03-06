@@ -122,10 +122,15 @@ class Preference():
         incEdgesMap = self.getIncEdgesMap()
         sortedKeys = sorted(incEdgesMap.keys(), reverse = True)
         orderVector = []
+        # print("sortedKeys",sortedKeys)
+        # print("incEdgesMap", incEdgesMap)
         for key in sortedKeys:
             tier = []
             cands = incEdgesMap[key]
+            # print("qq",cands)
             for cand in cands:
                 tier.append(cand)
-            orderVector.append(tier)
+                # print("cand=",cand)
+            # print("tier", tier)
+            orderVector.append(tier[0])  # replace tier with tier[0]
         return orderVector

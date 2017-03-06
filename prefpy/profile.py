@@ -2,11 +2,13 @@
 Author: Kevin J. Hwang
 """
 import copy
-import io
+from . import prefpy_io
 import itertools
 import math
 import json
+import os
 from .preference import Preference
+# import preference
 
 class Profile():
     """
@@ -257,7 +259,7 @@ class Profile():
 
         # Use the functionality found in io to read the file.
         elecFileObj = open(fileName, 'r')
-        self.candMap, rankMaps, wmgMapsCounts, self.numVoters = io.read_election_file(elecFileObj)
+        self.candMap, rankMaps, wmgMapsCounts, self.numVoters = prefpy_io.read_election_file(elecFileObj)
         elecFileObj.close()
 
         self.numCands = len(self.candMap.keys())
