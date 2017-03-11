@@ -943,11 +943,15 @@ class MechanismBaldwin():
         # edges in each of the wmgMaps. We take into account the number of times that the vote
         # occured.
         for i in range(0, len(prefcounts)):
+            # print("wmgMap=",wmgMap)
             for cand1, cand2 in itertools.combinations(rankmaps[i].keys(), 2):  # --------------------------
-                if rankmaps[0][cand1] < rankmaps[0][cand2]:
+                # print("cand1=",cand1,"cand2=",cand2)
+                # print(rankmaps[0][cand1] , rankmaps[0][cand2])
+                if rankmaps[i][cand1] < rankmaps[i][cand2]:
                     wmgMap[cand1][cand2] += prefcounts[i]
-                elif rankmaps[0][cand1] > rankmaps[0][cand2]:
+                elif rankmaps[i][cand1] > rankmaps[i][cand2]:
                     wmgMap[cand2][cand1] += prefcounts[i]
+                # print("wmgMap=", wmgMap)
 
         # By default, we assume that the weighted majority graph should not be normalized. If
         # desired, we normalize by dividing each edge by the value of the largest edge.
@@ -959,6 +963,7 @@ class MechanismBaldwin():
                 for cand2 in wmgMap[cand1].keys():
                     wmgMap[cand1][cand2] = float(wmgMap[cand1][cand2]) / maxEdge
 
+        #print("wmg=",wmgMap)
         return wmgMap
 
 class MechanismCoombs():
