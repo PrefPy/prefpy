@@ -173,9 +173,9 @@ def generate_mix2pl_dataset(n, m, useDirichlet=True):
         gamma2 = np.random.dirichlet(np.ones(m))
     else:
         gamma1 = np.random.rand(m)
-        gamma1 /= np.sum(gamma) # normalize sum to 1.0 (not needed for Dirichlet)
+        gamma1 /= np.sum(gamma1) # normalize sum to 1.0 (not needed for Dirichlet)
         gamma2 = np.random.rand(m)
-        gamma2 /= np.sum(gamma)
+        gamma2 /= np.sum(gamma1)
 
     votes = []
 

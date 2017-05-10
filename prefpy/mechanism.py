@@ -3,6 +3,7 @@ Author: Kevin J. Hwang
 """
 import io
 import math
+
 import itertools
 from .preference import Preference
 from .profile import Profile
@@ -15,7 +16,8 @@ class Mechanism():
     :ivar bool maximizeCandScore: True if the mechanism requires winners to maximize their score
         and if False otherwise.
     """
-
+    
+    
     def getWinners(self, profile):
         """
         Returns a list of all winning candidates given an election profile. This function assumes
@@ -153,7 +155,7 @@ class MechanismPosScoring(Mechanism):
         :ivar Profile profile: A Profile object that represents an election profile.
         """
         from . import mov
-        return mov.movPosScoring(profile, self.getScoringVector(profile))
+        return mov.MoVScoring(profile, self.getScoringVector(profile))
 
 class MechanismPlurality(MechanismPosScoring):
     """
@@ -200,6 +202,33 @@ class MechanismVeto(MechanismPosScoring):
         for i in range(numTiers - 1, profile.numCands):
             scoringVector.append(0)
         return scoringVector
+        
+    def getCandScoresMap(self, profile):
+        elecType = profile.getElecType()
+        if elecType != "soc" and elecType != "toc":
+            print("ERROR: unsupported election type")
+            exit()
+
+        # Initialize our dictionary so that all candidates have a score of zero.
+        candScoresMap = dict()
+        for cand in profile.candMap.keys():
+            candScoresMap[cand] = 0.0
+
+        rankMaps = profile.getRankMaps()
+        rankMapCounts = profile.getPreferenceCounts()
+        
+        for i in range(0, len(rankMaps)):
+            scoringVector  = []
+            rankMap = rankMaps[i]
+            rankMapCount = rankMapCounts[i]
+            x = max(rankMap.values())
+            for y in range(0,x-1):
+                scoringVector.append(1)
+            scoringVector.append(0)
+            for cand in rankMap.keys():
+                candScoresMap[cand] += scoringVector[rankMap[cand]-1]*rankMapCount
+        print(candScoresMap)
+        return candScoresMap
 
 class MechanismBorda(MechanismPosScoring):
     """
@@ -532,3 +561,566 @@ def getKendallTauScore(myResponse, otherResponse):
 
     #returns found value
     return kt
+
+class MechanismSTV():
+    """
+    The STV mechanism.
+    """
+
+    def STVwinners(self, profile):
+        elecType = profile.getElecType()
+        if elecType == "soc" or elecType == "csv":
+            return self.STVsocwinners(profile)
+        elif elecType == "toc":
+            return self.STVtocwinners(profile)
+        else:
+            print("ERROR: unsupported profile type")
+            exit()
+
+    def STVsocwinners(self, profile):
+        """
+        Returns an integer list that represents all winners of a profile.
+        """
+        ordering = profile.getOrderVectors()
+        prefcounts = profile.getPreferenceCounts()
+        m = profile.numCands
+
+        if min(ordering[0]) == 0:
+            startstate = set(range(m))
+        else:
+            startstate = set(range(1, m + 1))
+
+        ordering, startstate = self.preprocessing(ordering, prefcounts, m, startstate)
+        m_star = len(startstate)
+        known_winners = set()
+        # ----------Some statistics--------------
+        hashtable2 = set()
+
+        # push the node of start state into the priority queue
+        root = Node(value=startstate)
+        stackNode = []
+        stackNode.append(root)
+
+        while stackNode:
+            # ------------pop the current node-----------------
+            node = stackNode.pop()
+            # -------------------------------------------------
+            state = node.value.copy()
+
+            # use heuristic to delete all the candidates which satisfy the following condition
+
+            # goal state 1: if the state set contains only 1 candidate, then stop
+            if len(state) == 1 and list(state)[0] not in known_winners:
+                known_winners.add(list(state)[0])
+                continue
+            # goal state 2 (pruning): if the state set is subset of the known_winners set, then stop
+            if state <= known_winners:
+                continue
+            # ----------Compute plurality score for the current remaining candidates--------------
+            plural_score = self.get_plurality_scores3(prefcounts, ordering, state, m_star)
+            minscore = min(plural_score.values())
+            for to_be_deleted in state:
+                if plural_score[to_be_deleted] == minscore:
+                    child_state = state.copy()
+                    child_state.remove(to_be_deleted)
+                    tpc = tuple(sorted(child_state))
+                    if tpc in hashtable2:
+                        continue
+                    else:
+                        hashtable2.add(tpc)
+                        child_node = Node(value=child_state)
+                        stackNode.append(child_node)
+
+        return sorted(known_winners)
+
+    def STVtocwinners(self, profile):
+        """
+        Returns an integer list that represents all winners of a profile.
+        """
+        ordering = profile.getOrderVectors()
+        prefcounts = profile.getPreferenceCounts()
+        len_prefcounts = len(prefcounts)
+        m = profile.numCands
+        rankmaps = profile.getRankMaps()
+        if min(ordering[0]) == 0:
+            startstate = set(range(m))
+        else:
+            startstate = set(range(1, m + 1))
+
+        # ordering, startstate = self.preprocessing(ordering, prefcounts, m, startstate)
+        # m_star = len(startstate)
+        known_winners = set()
+        # ----------Some statistics--------------
+        hashtable2 = set()
+        # values = zeros([len_prefcounts, m], dtype=int)
+        #
+        # for i in range(len_prefcounts):
+        #     values[i] = list(rankmaps[i].values())
+        #
+        # # print values
+        # dict0 = {}
+        # for t in startstate:
+        #     dict0[t] = values[:, t - 1]
+        # push the node of start state into the priority queue
+        root = Node(value=startstate)
+        stackNode = []
+        stackNode.append(root)
+
+        while stackNode:
+            # ------------pop the current node-----------------
+            node = stackNode.pop()
+            # -------------------------------------------------
+            state = node.value.copy()
+
+            # use heuristic to delete all the candidates which satisfy the following condition
+
+            # goal state 1: if the state set contains only 1 candidate, then stop
+            if len(state) == 1 and list(state)[0] not in known_winners:
+                known_winners.add(list(state)[0])
+                continue
+            # goal state 2 (pruning): if the state set is subset of the known_winners set, then stop
+            if state <= known_winners:
+                continue
+            # ----------Compute plurality score for the current remaining candidates--------------
+            plural_score = self.get_plurality_scores4(prefcounts, rankmaps, state)
+            minscore = min(plural_score.values())
+            for to_be_deleted in state:
+                if plural_score[to_be_deleted] == minscore:
+                    child_state = state.copy()
+                    child_state.remove(to_be_deleted)
+                    tpc = tuple(sorted(child_state))
+                    if tpc in hashtable2:
+                        continue
+                    else:
+                        hashtable2.add(tpc)
+                        child_node = Node(value=child_state)
+                        stackNode.append(child_node)
+
+        return sorted(known_winners)
+
+    def preprocessing(self, ordering, prefcounts, m, startstate):
+        plural_score = self.get_plurality_scores3(prefcounts, ordering, startstate, m)
+        state = set([key for key, value in plural_score.items() if value != 0])
+        ordering = self.construct_ordering(ordering, prefcounts, state)
+        plural_score = dict([(key, value) for key, value in plural_score.items() if value != 0])
+        minscore = min(plural_score.values())
+        to_be_deleted = [key for key, value in plural_score.items() if value == minscore]
+        if len(to_be_deleted) > 1:
+            return ordering, state
+        else:
+            while len(to_be_deleted) == 1 and len(state) > 1:
+                state.remove(to_be_deleted[0])
+                plural_score = self.get_plurality_scores3(prefcounts, ordering, state, m)
+                minscore = min(plural_score.values())
+                to_be_deleted = [key for key, value in plural_score.items() if value == minscore]
+            ordering = self.construct_ordering(ordering, prefcounts, state)
+            return ordering, state
+
+    def construct_ordering(self, ordering, prefcounts, state):
+        new_ordering = []
+        for i in range(len(prefcounts)):
+            new_ordering.append([x for x in ordering[i] if x in state])
+        return new_ordering
+
+    def get_plurality_scores3(self, prefcounts, ordering, state, m):
+        plural_score = {}
+        plural_score = plural_score.fromkeys(state, 0)
+        for i in range(len(prefcounts)):
+            for j in range(m):
+                if ordering[i][j] in state:
+                    plural_score[ordering[i][j]] += prefcounts[i]
+                    break
+        return plural_score
+
+    def get_plurality_scores4(self, prefcounts, rankmaps, state):
+        plural_score = {}
+        plural_score = plural_score.fromkeys(state, 0)
+        for i in range(len(prefcounts)):
+            temp = list(filter(lambda x: x[0] in state, list(rankmaps[i].items())))
+            min_value = min([value for key, value in temp])
+            for j in state:
+                if rankmaps[i][j] == min_value:
+                    plural_score[j] += prefcounts[i]
+
+        return plural_score
+
+
+class MechanismBaldwin():
+    """
+    The Baldwin mechanism.
+    """
+
+    def baldwin_winners(self, profile):
+        elecType = profile.getElecType()
+        if elecType == "soc" or elecType == "csv":
+            return self.baldwinsoc_winners(profile)
+        elif elecType == "toc":
+            return self.baldwintoc_winners(profile)
+        else:
+            print("ERROR: unsupported profile type")
+            exit()
+
+    def baldwinsoc_winners(self, profile):
+        """
+        Returns an integer list that represents all winners of a profile.
+        """
+        ordering = profile.getOrderVectors()
+        m = profile.numCands
+        prefcounts = profile.getPreferenceCounts()
+        if min(ordering[0]) == 0:
+            startstate = set(range(m))
+        else:
+            startstate = set(range(1, m + 1))
+        wmg = self.getWmg2(prefcounts, ordering, startstate, normalize=False)
+        known_winners = set()
+        # ----------Some statistics--------------
+        hashtable2 = set()
+
+        # push the node of start state into the priority queue
+        root = Node(value=startstate)
+        stackNode = []
+        stackNode.append(root)
+
+        while stackNode:
+            # ------------pop the current node-----------------
+            node = stackNode.pop()
+            # -------------------------------------------------
+            state = node.value.copy()
+
+            # goal state 1: if the state set contains only 1 candidate, then stop
+            if len(state) == 1 and list(state)[0] not in known_winners:
+                known_winners.add(list(state)[0])
+                continue
+            # goal state 2 (pruning): if the state set is subset of the known_winners set, then stop
+            if state <= known_winners:
+                continue
+            # ----------Compute plurality score for the current remaining candidates--------------
+            plural_score = dict()
+            for cand in state:
+                plural_score[cand] = 0
+            for cand1, cand2 in itertools.permutations(state, 2):
+                plural_score[cand1] += wmg[cand1][cand2]
+
+            # if current state satisfies one of the 3 goal state, continue to the next loop
+
+            # After using heuristics, generate children and push them into priority queue
+            # frontier = [val for val in known_winners if val in state] + list(set(state) - set(known_winners))
+
+            minscore = min(plural_score.values())
+            for to_be_deleted in state:
+                if plural_score[to_be_deleted] == minscore:
+                    child_state = state.copy()
+                    child_state.remove(to_be_deleted)
+                    tpc = tuple(sorted(child_state))
+                    if tpc in hashtable2:
+                        continue
+                    else:
+                        hashtable2.add(tpc)
+                        child_node = Node(value=child_state)
+                        stackNode.append(child_node)
+        return sorted(known_winners)
+
+    def baldwintoc_winners(self, profile):
+        """
+        Returns an integer list that represents all winners of a profile.
+        """
+        ordering = profile.getOrderVectors()
+        m = profile.numCands
+        prefcounts = profile.getPreferenceCounts()
+
+        rankmaps = profile.getRankMaps()
+        if min(ordering[0]) == 0:
+            startstate = set(range(m))
+        else:
+            startstate = set(range(1, m + 1))
+        wmg = self.getWmg3(prefcounts, rankmaps, startstate, normalize=False)
+        known_winners = set()
+        # ----------Some statistics--------------
+        hashtable2 = set()
+
+        # push the node of start state into the priority queue
+        root = Node(value=startstate)
+        stackNode = []
+        stackNode.append(root)
+
+        while stackNode:
+            # ------------pop the current node-----------------
+            node = stackNode.pop()
+            # -------------------------------------------------
+            state = node.value.copy()
+
+            # goal state 1: if the state set contains only 1 candidate, then stop
+            if len(state) == 1 and list(state)[0] not in known_winners:
+                known_winners.add(list(state)[0])
+                continue
+            # goal state 2 (pruning): if the state set is subset of the known_winners set, then stop
+            if state <= known_winners:
+                continue
+            # ----------Compute plurality score for the current remaining candidates--------------
+            plural_score = dict()
+            for cand in state:
+                plural_score[cand] = 0
+            for cand1, cand2 in itertools.permutations(state, 2):
+                plural_score[cand1] += wmg[cand1][cand2]
+
+            # if current state satisfies one of the 3 goal state, continue to the next loop
+
+            # After using heuristics, generate children and push them into priority queue
+            # frontier = [val for val in known_winners if val in state] + list(set(state) - set(known_winners))
+            childbranch = 0
+            minscore = min(plural_score.values())
+            for to_be_deleted in state:
+                if plural_score[to_be_deleted] == minscore:
+                    child_state = state.copy()
+                    child_state.remove(to_be_deleted)
+                    tpc = tuple(sorted(child_state))
+                    if tpc in hashtable2:
+                        continue
+                    else:
+                        hashtable2.add(tpc)
+                        child_node = Node(value=child_state)
+                        stackNode.append(child_node)
+        return sorted(known_winners)
+
+    def getWmg2(self, prefcounts, ordering, state, normalize=False):
+        """
+        Generate a weighted majority graph that represents the whole profile. The function will
+        return a two-dimensional dictionary that associates integer representations of each pair of
+        candidates, cand1 and cand2, with the number of times cand1 is ranked above cand2 minus the
+        number of times cand2 is ranked above cand1.
+
+        :ivar bool normalize: If normalize is True, the function will return a normalized graph
+            where each edge has been divided by the value of the largest edge.
+        """
+
+        # Initialize a new dictionary for our final weighted majority graph.
+        wmgMap = dict()
+        for cand in state:
+            wmgMap[cand] = dict()
+        for cand1, cand2 in itertools.combinations(state, 2):
+            wmgMap[cand1][cand2] = 0
+            wmgMap[cand2][cand1] = 0
+
+        # Go through the wmgMaps and increment the value of each edge in our final graph with the
+        # edges in each of the wmgMaps. We take into account the number of times that the vote
+        # occured.
+        for i in range(0, len(prefcounts)):
+            for cand1, cand2 in itertools.combinations(ordering[i], 2):  # --------------------------
+                wmgMap[cand1][cand2] += prefcounts[i]
+
+        # By default, we assume that the weighted majority graph should not be normalized. If
+        # desired, we normalize by dividing each edge by the value of the largest edge.
+        if normalize == True:
+            maxEdge = float('-inf')
+            for cand in wmgMap.keys():
+                maxEdge = max(maxEdge, max(wmgMap[cand].values()))
+            for cand1 in wmgMap.keys():
+                for cand2 in wmgMap[cand1].keys():
+                    wmgMap[cand1][cand2] = float(wmgMap[cand1][cand2]) / maxEdge
+
+        return wmgMap
+
+    def getWmg3(self, prefcounts, rankmaps, state, normalize=False):
+        """
+        Generate a weighted majority graph that represents the whole profile. The function will
+        return a two-dimensional dictionary that associates integer representations of each pair of
+        candidates, cand1 and cand2, with the number of times cand1 is ranked above cand2 minus the
+        number of times cand2 is ranked above cand1.
+
+        :ivar bool normalize: If normalize is True, the function will return a normalized graph
+            where each edge has been divided by the value of the largest edge.
+        """
+
+        # Initialize a new dictionary for our final weighted majority graph.
+        wmgMap = dict()
+        for cand in state:
+            wmgMap[cand] = dict()
+        for cand1, cand2 in itertools.combinations(state, 2):
+            wmgMap[cand1][cand2] = 0
+            wmgMap[cand2][cand1] = 0
+
+        # Go through the wmgMaps and increment the value of each edge in our final graph with the
+        # edges in each of the wmgMaps. We take into account the number of times that the vote
+        # occured.
+        for i in range(0, len(prefcounts)):
+            for cand1, cand2 in itertools.combinations(rankmaps[i].keys(), 2):  # --------------------------
+                if rankmaps[0][cand1] < rankmaps[0][cand2]:
+                    wmgMap[cand1][cand2] += prefcounts[i]
+                elif rankmaps[0][cand1] > rankmaps[0][cand2]:
+                    wmgMap[cand2][cand1] += prefcounts[i]
+
+        # By default, we assume that the weighted majority graph should not be normalized. If
+        # desired, we normalize by dividing each edge by the value of the largest edge.
+        if normalize == True:
+            maxEdge = float('-inf')
+            for cand in wmgMap.keys():
+                maxEdge = max(maxEdge, max(wmgMap[cand].values()))
+            for cand1 in wmgMap.keys():
+                for cand2 in wmgMap[cand1].keys():
+                    wmgMap[cand1][cand2] = float(wmgMap[cand1][cand2]) / maxEdge
+
+        return wmgMap
+
+class MechanismCoombs():
+    """
+    The Baldwin mechanism.
+    """
+    def coombs_winners(self, profile):
+        elecType = profile.getElecType()
+        if elecType == "soc" or elecType == "csv":
+            return self.coombssoc_winners(profile)
+        elif elecType == "toc":
+            return self.coombstoc_winners(profile)
+        else:
+            print("ERROR: unsupported profile type")
+            exit()
+
+    def coombssoc_winners(self, profile):
+        """
+        Returns an integer list that represents all winners of a profile.
+        """
+        ordering = profile.getOrderVectors()
+        m = profile.numCands
+        prefcounts = profile.getPreferenceCounts()
+        if min(ordering[0]) == 0:
+            startstate = set(range(m))
+        else:
+            startstate = set(range(1, m + 1))
+        known_winners = set()
+        # half = math.floor(n / 2.0)
+        # ----------Some statistics--------------
+        hashtable2 = set()
+
+        # push the node of start state into the priority queue
+        root = Node(value=startstate)
+        stackNode = []
+        stackNode.append(root)
+
+        while stackNode:
+            # ------------pop the current node----------------
+            node = stackNode.pop()
+            # -------------------------------------------------
+            state = node.value.copy()
+            # use heuristic to delete all the candidates which satisfy the following condition
+
+            # goal state 1: if the state set contains only 1 candidate, then stop
+            if len(state) == 1 and list(state)[0] not in known_winners:
+                known_winners.add(list(state)[0])
+                continue
+            # goal state 2 (pruning): if the state set is subset of the known_winners set, then stop
+            if state <= known_winners:
+                continue
+            # ----------Compute plurality score for the current remaining candidates-------------
+            reverse_veto_score = self.get_reverse_veto_scores(prefcounts, ordering, state, m)
+
+            # if current state satisfies one of the 3 goal state, continue to the next loop
+
+            # After using heuristics, generate children and push them into priority queue
+            # frontier = [val for val in known_winners if val in state] + list(set(state) - set(known_winners))
+
+            maxscore = max(reverse_veto_score.values())
+            for to_be_deleted in state:
+                if reverse_veto_score[to_be_deleted] == maxscore:
+                    child_state = state.copy()
+                    child_state.remove(to_be_deleted)
+                    tpc = tuple(sorted(child_state))
+                    if tpc in hashtable2:
+                        continue
+                    else:
+                        hashtable2.add(tpc)
+                        child_node = Node(value=child_state)
+                        stackNode.append(child_node)
+        return sorted(known_winners)
+
+    def get_reverse_veto_scores(self, prefcounts, ordering, state, m):
+        plural_score = {}
+        plural_score = plural_score.fromkeys(state, 0)
+        for i in range(len(prefcounts)):
+            for j in range(m - 1, -1, -1):
+                if ordering[i][j] in state:
+                    plural_score[ordering[i][j]] += prefcounts[i]
+                    break
+        return plural_score
+
+    def coombstoc_winners(self, profile):
+        """
+        Returns an integer list that represents all winners of a profile.
+        """
+        ordering = profile.getOrderVectors()
+        m = profile.numCands
+        prefcounts = profile.getPreferenceCounts()
+        rankmaps = profile.getRankMaps()
+        if min(ordering[0]) == 0:
+            startstate = set(range(m))
+        else:
+            startstate = set(range(1, m + 1))
+        known_winners = set()
+        # half = math.floor(n / 2.0)
+        # ----------Some statistics--------------
+        hashtable2 = set()
+
+        # push the node of start state into the priority queue
+        root = Node(value=startstate)
+        stackNode = []
+        stackNode.append(root)
+
+        while stackNode:
+            # ------------pop the current node----------------
+            node = stackNode.pop()
+            # -------------------------------------------------
+            state = node.value.copy()
+            # use heuristic to delete all the candidates which satisfy the following condition
+
+            # goal state 1: if the state set contains only 1 candidate, then stop
+            if len(state) == 1 and list(state)[0] not in known_winners:
+                known_winners.add(list(state)[0])
+                continue
+            # goal state 2 (pruning): if the state set is subset of the known_winners set, then stop
+            if state <= known_winners:
+                continue
+            # ----------Compute plurality score for the current remaining candidates-------------
+            reverse_veto_score = self.get_reverse_veto_scores2(prefcounts, rankmaps, state)
+
+            # if current state satisfies one of the 3 goal state, continue to the next loop
+
+            # After using heuristics, generate children and push them into priority queue
+            # frontier = [val for val in known_winners if val in state] + list(set(state) - set(known_winners))
+
+            maxscore = max(reverse_veto_score.values())
+            for to_be_deleted in state:
+                if reverse_veto_score[to_be_deleted] == maxscore:
+                    child_state = state.copy()
+                    child_state.remove(to_be_deleted)
+                    tpc = tuple(sorted(child_state))
+                    if tpc in hashtable2:
+                        continue
+                    else:
+                        hashtable2.add(tpc)
+                        child_node = Node(value=child_state)
+                        stackNode.append(child_node)
+        return sorted(known_winners)
+
+    def get_reverse_veto_scores2(self, prefcounts, rankmaps, state):
+        plural_score = {}
+        plural_score = plural_score.fromkeys(state, 0)
+        for i in range(len(prefcounts)):
+            temp = list(filter(lambda x: x[0] in state, list(rankmaps[i].items())))
+            max_value = max([value for key, value in temp])
+            for j in state:
+                if rankmaps[i][j] == max_value:
+                    plural_score[j] += prefcounts[i]
+
+        return plural_score
+
+
+
+class Node:
+    def __init__(self, value=None):
+        self.value = value
+
+    def __lt__(self, other):
+        return 0
+
+    def getvalue(self):
+        return self.value
+

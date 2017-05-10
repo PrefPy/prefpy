@@ -122,10 +122,42 @@ class Preference():
         incEdgesMap = self.getIncEdgesMap()
         sortedKeys = sorted(incEdgesMap.keys(), reverse = True)
         orderVector = []
+        print(sortedKeys)
+        # print("sortedKeys",sortedKeys)
+        # print("incEdgesMap", incEdgesMap)
         for key in sortedKeys:
             tier = []
             cands = incEdgesMap[key]
+            # print("qq",cands)
             for cand in cands:
                 tier.append(cand)
-            orderVector.append(tier)
+                # print("cand=",cand)
+            # print("tier", tier)
+            orderVector.append(tier[0])  # replace tier with tier[0]
         return orderVector
+
+    def getOrderVectorEGMM(self):
+        """
+        Returns a list of lists. Each list represents tiers of candidates. candidates in earlier
+        tiers are preferred to candidates appearing in later tiers. Candidates in the same tier
+        are preferred equally. 
+        """
+
+        # We sort the candidates based on the number of incoming edges they have in the graph. If 
+        # two candidates have the same number, we assume that they are tied.
+        incEdgesMap = self.getIncEdgesMap()
+        sortedKeys = sorted(incEdgesMap.keys())
+        orderVector = []
+        # print("sortedKeys",sortedKeys)
+        # print("incEdgesMap", incEdgesMap)
+        m = 0
+        for key in sortedKeys:
+            m += len(incEdgesMap[key])
+        result = [0] * m
+        for k in range(0, len(sortedKeys)):
+            key = sortedKeys[k]
+            cands = incEdgesMap[key]
+            # print("qq",cands)
+            for cand in cands:
+                result[cand] = len(sortedKeys) - (k + 1)
+        return result

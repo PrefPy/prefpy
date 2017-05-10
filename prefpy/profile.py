@@ -2,11 +2,13 @@
 Author: Kevin J. Hwang
 """
 import copy
-import io
+from . import prefpy_io
 import itertools
 import math
 import json
+import os
 from .preference import Preference
+# import preference
 
 class Profile():
     """
@@ -102,6 +104,18 @@ class Profile():
         orderVectors = []
         for preference in self.preferences:
             orderVectors.append(preference.getOrderVector())
+        return orderVectors
+
+    def getOrderVectorsEGMM(self):
+        """
+        Returns a list of lists, one for each preference, of candidates ordered from most preferred
+        to least. Note that ties are not indicated in the returned lists. Also returns a list of
+        the number of times each preference is given.
+        """
+
+        orderVectors = []
+        for preference in self.preferences:
+            orderVectors.append(preference.getOrderVectorEGMM())
         return orderVectors
 
     def getWmg(self, normalize = False):
@@ -257,7 +271,7 @@ class Profile():
 
         # Use the functionality found in io to read the file.
         elecFileObj = open(fileName, 'r')
-        self.candMap, rankMaps, wmgMapsCounts, self.numVoters = io.read_election_file(elecFileObj)
+        self.candMap, rankMaps, wmgMapsCounts, self.numVoters = prefpy_io.read_election_file(elecFileObj)
         elecFileObj.close()
 
         self.numCands = len(self.candMap.keys())
