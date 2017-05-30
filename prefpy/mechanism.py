@@ -1,12 +1,14 @@
 """
 Author: Kevin J. Hwang
+        Jun Wang
 """
 import io
 import math
-
+from numpy import *
 import itertools
-from .preference import Preference
-from .profile import Profile
+from preference import Preference
+from profile import Profile
+import copy
 
 class Mechanism():
     """
@@ -16,8 +18,7 @@ class Mechanism():
     :ivar bool maximizeCandScore: True if the mechanism requires winners to maximize their score
         and if False otherwise.
     """
-    
-    
+
     def getWinners(self, profile):
         """
         Returns a list of all winning candidates given an election profile. This function assumes
@@ -155,7 +156,7 @@ class MechanismPosScoring(Mechanism):
         :ivar Profile profile: A Profile object that represents an election profile.
         """
         from . import mov
-        return mov.MoVScoring(profile, self.getScoringVector(profile))
+        return mov.movPosScoring(profile, self.getScoringVector(profile))
 
 class MechanismPlurality(MechanismPosScoring):
     """
@@ -202,33 +203,6 @@ class MechanismVeto(MechanismPosScoring):
         for i in range(numTiers - 1, profile.numCands):
             scoringVector.append(0)
         return scoringVector
-        
-    def getCandScoresMap(self, profile):
-        elecType = profile.getElecType()
-        if elecType != "soc" and elecType != "toc":
-            print("ERROR: unsupported election type")
-            exit()
-
-        # Initialize our dictionary so that all candidates have a score of zero.
-        candScoresMap = dict()
-        for cand in profile.candMap.keys():
-            candScoresMap[cand] = 0.0
-
-        rankMaps = profile.getRankMaps()
-        rankMapCounts = profile.getPreferenceCounts()
-        
-        for i in range(0, len(rankMaps)):
-            scoringVector  = []
-            rankMap = rankMaps[i]
-            rankMapCount = rankMapCounts[i]
-            x = max(rankMap.values())
-            for y in range(0,x-1):
-                scoringVector.append(1)
-            scoringVector.append(0)
-            for cand in rankMap.keys():
-                candScoresMap[cand] += scoringVector[rankMap[cand]-1]*rankMapCount
-        print(candScoresMap)
-        return candScoresMap
 
 class MechanismBorda(MechanismPosScoring):
     """
@@ -579,7 +553,9 @@ class MechanismSTV():
 
     def STVsocwinners(self, profile):
         """
-        Returns an integer list that represents all winners of a profile.
+        Returns an integer list that represents all possible winners of a profile under STV rule.
+        
+        :ivar Profile profile: A Profile object that represents an election profile.
         """
         ordering = profile.getOrderVectors()
         prefcounts = profile.getPreferenceCounts()
@@ -635,7 +611,9 @@ class MechanismSTV():
 
     def STVtocwinners(self, profile):
         """
-        Returns an integer list that represents all winners of a profile.
+        Returns an integer list that represents all possible winners of a profile under STV rule.
+        
+        :ivar Profile profile: A Profile object that represents an election profile.
         """
         ordering = profile.getOrderVectors()
         prefcounts = profile.getPreferenceCounts()
@@ -762,7 +740,9 @@ class MechanismBaldwin():
 
     def baldwinsoc_winners(self, profile):
         """
-        Returns an integer list that represents all winners of a profile.
+        Returns an integer list that represents all possible winners of a profile under baldwin rule.
+        
+        :ivar Profile profile: A Profile object that represents an election profile.
         """
         ordering = profile.getOrderVectors()
         m = profile.numCands
@@ -822,7 +802,9 @@ class MechanismBaldwin():
 
     def baldwintoc_winners(self, profile):
         """
-        Returns an integer list that represents all winners of a profile.
+        Returns an integer list that represents all possible winners of a profile under baldwin rule.
+        
+        :ivar Profile profile: A Profile object that represents an election profile.
         """
         ordering = profile.getOrderVectors()
         m = profile.numCands
@@ -943,12 +925,15 @@ class MechanismBaldwin():
         # edges in each of the wmgMaps. We take into account the number of times that the vote
         # occured.
         for i in range(0, len(prefcounts)):
+            # print("wmgMap=",wmgMap)
             for cand1, cand2 in itertools.combinations(rankmaps[i].keys(), 2):  # --------------------------
-                if rankmaps[0][cand1] < rankmaps[0][cand2]:
+                # print("cand1=",cand1,"cand2=",cand2)
+                # print(rankmaps[0][cand1] , rankmaps[0][cand2])
+                if rankmaps[i][cand1] < rankmaps[i][cand2]:
                     wmgMap[cand1][cand2] += prefcounts[i]
-                elif rankmaps[0][cand1] > rankmaps[0][cand2]:
+                elif rankmaps[i][cand1] > rankmaps[i][cand2]:
                     wmgMap[cand2][cand1] += prefcounts[i]
-
+                # print("wmgMap=", wmgMap)
         # By default, we assume that the weighted majority graph should not be normalized. If
         # desired, we normalize by dividing each edge by the value of the largest edge.
         if normalize == True:
@@ -959,13 +944,17 @@ class MechanismBaldwin():
                 for cand2 in wmgMap[cand1].keys():
                     wmgMap[cand1][cand2] = float(wmgMap[cand1][cand2]) / maxEdge
 
+        print("wmg=",wmgMap)
         return wmgMap
 
 class MechanismCoombs():
-    """
-    The Baldwin mechanism.
-    """
+
     def coombs_winners(self, profile):
+        """
+        Returns an integer list that represents all possible winners of a profile under Coombs rule.
+        
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
         elecType = profile.getElecType()
         if elecType == "soc" or elecType == "csv":
             return self.coombssoc_winners(profile)
@@ -977,7 +966,9 @@ class MechanismCoombs():
 
     def coombssoc_winners(self, profile):
         """
-        Returns an integer list that represents all winners of a profile.
+        Returns an integer list that represents all possible winners of a profile under Coombs rule.
+        
+        :ivar Profile profile: A Profile object that represents an election profile.
         """
         ordering = profile.getOrderVectors()
         m = profile.numCands
@@ -1044,7 +1035,9 @@ class MechanismCoombs():
 
     def coombstoc_winners(self, profile):
         """
-        Returns an integer list that represents all winners of a profile.
+        Returns an integer list that represents all possible winners of a profile under Coombs rule.
+        
+        :ivar Profile profile: A Profile object that represents an election profile.
         """
         ordering = profile.getOrderVectors()
         m = profile.numCands
@@ -1080,6 +1073,7 @@ class MechanismCoombs():
                 continue
             # ----------Compute plurality score for the current remaining candidates-------------
             reverse_veto_score = self.get_reverse_veto_scores2(prefcounts, rankmaps, state)
+            # print("reverse_veto_score = ",reverse_veto_score)
 
             # if current state satisfies one of the 3 goal state, continue to the next loop
 
@@ -1112,7 +1106,234 @@ class MechanismCoombs():
 
         return plural_score
 
+class MechanismRankedPairs():
+    """
+    The Ranked Pairs mechanism.
+    """
 
+    def ranked_pairs_single_winner(self, profile):
+        """
+        Returns a number that associates the winner of a profile under ranked pairs rule.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+
+        # Currently, we expect the profile to contain complete ordering over candidates. Ties are
+        # allowed however.
+        elecType = profile.getElecType()
+        if elecType != "soc" and elecType != "toc" and elecType != "csv":
+            print("ERROR: unsupported election type")
+            exit()
+
+        wmg = profile.getWmg()
+        # -------------Initialize the dag G-------------------------
+        m = profile.numCands
+        ordering = profile.getOrderVectors()
+
+        if min(ordering[0]) == 0:
+            I = list(range(m))
+        else:
+            I = list(range(1, m + 1))
+
+        G = dict()
+        for i in I:
+            G[i] = []
+        wmg2 = dict()
+        for cand1, cand2 in itertools.permutations(wmg.keys(), 2):
+            wmg2[(cand1, cand2)] = wmg[cand1][cand2]
+
+        while wmg2 is not None:
+            (edge, weight) = max(wmg2.items(), key=lambda x: x[1])
+            if weight <= 0:
+                break
+
+            G[edge[0]].append(edge[1])
+
+            if self.cyclic(G) is False:
+                wmg2.pop(edge)
+            else:
+                G[edge[0]].remove(edge[1])
+                wmg2.pop(edge)
+
+        top_list = self.topological_sort(G)
+        return top_list[0]
+
+    def ranked_pairs_cowinners(self, profile):
+        """
+        Returns a list that associates all the winner of a profile under ranked pairs rule.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+
+        # Currently, we expect the profile to contain complete ordering over candidates. Ties are
+        # allowed however.
+        elecType = profile.getElecType()
+        if elecType != "soc" and elecType != "toc" and elecType != "csv":
+            print("ERROR: unsupported election type")
+            exit()
+
+        wmg = profile.getWmg()
+        # -------------Initialize the dag G-------------------------
+        m = profile.numCands
+        ordering = profile.getOrderVectors()
+        known_winners = set()
+
+        if min(ordering[0]) == 0:
+            I = list(range(m))
+        else:
+            I = list(range(1, m + 1))
+
+        G = dict()
+        for i in I:
+            G[i] = []
+        wmg2 = dict()
+        for cand1, cand2 in itertools.permutations(wmg.keys(), 2):
+            wmg2[(cand1, cand2)] = wmg[cand1][cand2]
+
+        root = Node(value=(wmg2, G))
+        stackNode = []
+        stackNode.append(root)
+
+        while stackNode:
+            node = stackNode.pop()
+            (wmg2, G) = node.value
+            # print(wmg2, G)
+
+            while wmg2 is not None:
+                (max_edge, max_weight) = max(wmg2.items(), key=lambda x: x[1])
+                # print("G=", G, "wmg2=", wmg2)
+                if max_weight <= 0:
+                    top_list = self.topological_sort(G)
+                    # add all the sources with same topological level to the known_winners set
+                    sources = list(G.values()).count(G[top_list[0]])
+                    known_winners = known_winners | set(top_list[0:sources])
+                    break
+                ties = list(wmg2.values()).count(max_weight)
+                # print("ties=", ties, "G=", G, "wmg2=", wmg2)
+                if ties == 1:
+                    edge = max_edge
+                    G[edge[0]].append(edge[1])
+                    if self.cyclic(G) is False:
+                        wmg2.pop(edge)
+                    else:
+                        G[edge[0]].remove(edge[1])
+                        wmg2.pop(edge)
+                    continue
+                else:  # ties > 1, there are multiple edges with same max weight.
+                    edges = [x for x in wmg2.keys() if wmg2[x] == max_weight]
+                    # print("edges=", edges)
+
+                    for edge in edges:
+                        Gc = copy.deepcopy(G)
+                        wmg2c = copy.deepcopy(wmg2)
+                        # print("Gc=", Gc)
+                        # print("edge=", edge[0], edge[1])
+                        Gc[edge[0]].append(edge[1])
+                        if self.cyclic(Gc) is False:
+                            wmg2c.pop(edge)
+                        else:
+                            Gc[edge[0]].remove(edge[1])
+                            wmg2c.pop(edge)
+                        child_node = Node(value=(wmg2c, Gc))
+                        stackNode.append(child_node)
+                    break
+        return sorted(known_winners)
+
+    def cyclic(self, graph):
+        """
+        Return True if the directed graph has a cycle.
+        The graph must be represented as a dictionary mapping vertices to
+        iterables of neighbouring vertices. For example:
+
+        >>> cyclic({1: (2,), 2: (3,), 3: (1,)})
+        True
+        >>> cyclic({1: (2,), 2: (3,), 3: (4,)})
+        False
+        >>> cyclic({1: [2], 2: [3], 3: [1]})
+        True
+
+        Gareth Rees. https://codereview.stackexchange.com/questions/86021/check-if-a-directed-graph-contains-a-cycle
+        """
+        visited = set()
+        path = [object()]
+        path_set = set(path)
+        stack = [iter(graph)]
+        while stack:
+            for v in stack[-1]:
+                if v in path_set:
+                    return True
+                elif v not in visited:
+                    visited.add(v)
+                    path.append(v)
+                    path_set.add(v)
+                    stack.append(iter(graph.get(v, ())))
+                    break
+            else:
+                path_set.remove(path.pop())
+                stack.pop()
+        return False
+
+    def topological_sort(self, graph):
+        """
+        Return a list corresponding the order of the vertices of a dag.
+        The graph must be represented as a dictionary mapping vertices to
+        iterables of neighbouring vertices. For example:
+
+        >>> topological_sort({1: (2,), 2: (3,), 3: (4,), 4:()})
+        [1, 2, 3, 4]
+
+        http://blog.csdn.net/pandora_madara/article/details/26478385
+        """
+        is_visit = dict((node, False) for node in graph)
+        li = []
+
+        def dfs(graph, start_node):
+
+            for end_node in graph[start_node]:
+                if not is_visit[end_node]:
+                    is_visit[end_node] = True
+                    dfs(graph, end_node)
+            li.append(start_node)
+
+        for start_node in graph:
+            if not is_visit[start_node]:
+                is_visit[start_node] = True
+                dfs(graph, start_node)
+
+        li.reverse()
+        return li
+
+class MechanismBlack():
+    """
+    The Black mechanism.
+    """
+
+    def black_winner(self, profile):
+        """
+        Returns a number that associates the winner of a profile under black rule.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+
+        # Currently, we expect the profile to contain complete ordering over candidates. Ties are
+        # allowed however.
+        elecType = profile.getElecType()
+        if elecType != "soc" and elecType != "toc" and elecType != "csv":
+            print("ERROR: unsupported election type")
+            exit()
+
+        wmg = profile.getWmg()
+        m = profile.numCands
+        for cand1 in wmg.keys():
+            outgoing = 0
+            for cand2 in wmg[cand1].keys():
+                if wmg[cand1][cand2] > 0:
+                    outgoing += 1
+            if outgoing == m - 1:
+                return cand1
+
+        Borda_winner = MechanismBorda().getWinners(profile)
+        return Borda_winner
 
 class Node:
     def __init__(self, value=None):
