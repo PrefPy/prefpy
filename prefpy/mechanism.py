@@ -53,7 +53,7 @@ class Mechanism():
         """
 
         # We generate a map that associates each score with the candidates that have that acore.
-        candScoresMap = self.getCandScoresMap(profile) 
+        candScoresMap = self.getCandScoresMap(profile)
         reverseCandScoresMap = dict()
         for key, value in candScoresMap.items():
             if value not in reverseCandScoresMap.keys():
@@ -80,6 +80,7 @@ class Mechanism():
         results.append(ranking)
 
         return results
+
 
 class MechanismPosScoring(Mechanism):
     """
@@ -146,6 +147,7 @@ class MechanismPosScoring(Mechanism):
             for cand in rankMap.keys():
                 candScoresMap[cand] += scoringVector[rankMap[cand]-1]*rankMapCount
         
+        # print("candScoresMap=", candScoresMap)
         return candScoresMap
 
     def getMov(self, profile):
@@ -204,6 +206,7 @@ class MechanismVeto(MechanismPosScoring):
             scoringVector.append(0)
         return scoringVector
 
+
 class MechanismBorda(MechanismPosScoring):
     """
     The Borda mechanism. This inherits from the positional scoring mechanism.
@@ -227,6 +230,7 @@ class MechanismBorda(MechanismPosScoring):
             scoringVector.append(score)
             score -= 1
         return scoringVector
+
 
 class MechanismKApproval(MechanismPosScoring):
     """
@@ -257,6 +261,7 @@ class MechanismKApproval(MechanismPosScoring):
         for i in range(self.k, profile.numCands):
             scoringVector.append(0)
         return scoringVector
+
 
 class MechanismSimplifiedBucklin(Mechanism):
     """
@@ -630,16 +635,6 @@ class MechanismSTV():
         known_winners = set()
         # ----------Some statistics--------------
         hashtable2 = set()
-        # values = zeros([len_prefcounts, m], dtype=int)
-        #
-        # for i in range(len_prefcounts):
-        #     values[i] = list(rankmaps[i].values())
-        #
-        # # print values
-        # dict0 = {}
-        # for t in startstate:
-        #     dict0[t] = values[:, t - 1]
-        # push the node of start state into the priority queue
         root = Node(value=startstate)
         stackNode = []
         stackNode.append(root)
@@ -1156,11 +1151,12 @@ class MechanismRankedPairs():
                 wmg2.pop(edge)
 
         top_list = self.topological_sort(G)
+        # print(top_list)
         return top_list[0]
 
     def ranked_pairs_cowinners(self, profile):
         """
-        Returns a list that associates all the winner of a profile under ranked pairs rule.
+        Returns a list that associates all the winners of a profile under ranked pairs rule.
 
         :ivar Profile profile: A Profile object that represents an election profile.
         """
@@ -1174,15 +1170,8 @@ class MechanismRankedPairs():
 
         wmg = profile.getWmg()
         # -------------Initialize the dag G-------------------------
-        m = profile.numCands
-        ordering = profile.getOrderVectors()
         known_winners = set()
-
-        if min(ordering[0]) == 0:
-            I = list(range(m))
-        else:
-            I = list(range(1, m + 1))
-
+        I = list(wmg.keys())
         G = dict()
         for i in I:
             G[i] = []
@@ -1199,7 +1188,28 @@ class MechanismRankedPairs():
             (wmg2, G) = node.value
             # print(wmg2, G)
 
-            while wmg2 is not None:
+            temp_wmg = dict()
+            for i in I:
+                temp_wmg[i] = []
+
+            for cand1, cand2 in wmg2.keys():
+                if wmg2[(cand1, cand2)] > 0:
+                    temp_wmg[cand1].append(cand2)
+            # print(temp_wmg, G)
+            if self.cyclic(temp_wmg) is False:
+                # print("okkk")
+                for (e, w) in wmg2.items():
+                    if w > 0:
+                        G[e[0]].append(e[1])
+                # wmg2 = {}
+                top_list = self.topological_sort(G)
+                # add all the sources with same topological level to the known_winners set
+                sources = list(G.values()).count(G[top_list[0]])
+                # print(G, sources)
+                known_winners = known_winners | set(top_list[0:sources])
+                break
+
+            while len(wmg2) != 0:
                 (max_edge, max_weight) = max(wmg2.items(), key=lambda x: x[1])
                 # print("G=", G, "wmg2=", wmg2)
                 if max_weight <= 0:
@@ -1310,7 +1320,7 @@ class MechanismBlack():
 
     def black_winner(self, profile):
         """
-        Returns a number that associates the winner of a profile under black rule.
+        Returns a number or a list that associates the winner(s) of a profile under black rule.
 
         :ivar Profile profile: A Profile object that represents an election profile.
         """
@@ -1335,6 +1345,167 @@ class MechanismBlack():
         Borda_winner = MechanismBorda().getWinners(profile)
         return Borda_winner
 
+
+class MechanismPluralityRunOff():
+    """
+    The Plurality with Runoff mechanism.
+    """
+
+    def PluRunOff_single_winner(self, profile):
+        """
+        Returns a number that associates the winner of a profile under Plurality with Runoff rule.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+
+        # Currently, we expect the profile to contain complete ordering over candidates. Ties are
+        # allowed however.
+        elecType = profile.getElecType()
+        if elecType != "soc" and elecType != "toc" and elecType != "csv":
+            print("ERROR: unsupported election type")
+            exit()
+
+        # Initialization
+        prefcounts = profile.getPreferenceCounts()
+        len_prefcounts = len(prefcounts)
+        rankmaps = profile.getRankMaps()
+        ranking = MechanismBorda().getRanking(profile)
+
+        # 1st round: find the top 2 candidates in plurality scores
+        # Compute the 1st-place candidate in plurality scores
+        max_cand = ranking[0][0][0]
+
+        # Compute the 2nd-place candidate in plurality scores
+        # Automatically using tie-breaking rule--numerically increasing order
+        if len(ranking[0][0]) > 1:
+            second_max_cand = ranking[0][0][1]
+        else:
+            second_max_cand = ranking[0][1][0]
+
+        top_2 = [max_cand, second_max_cand]
+        # 2nd round: find the candidate with maximum plurality score
+        dict_top2 = {max_cand: 0, second_max_cand: 0}
+        for i in range(len_prefcounts):
+            vote_top2 = {key: value for key, value in rankmaps[i].items() if key in top_2}
+            top_position = min(vote_top2.values())
+            keys = [x for x in vote_top2.keys() if vote_top2[x] == top_position]
+            for key in keys:
+                dict_top2[key] += prefcounts[i]
+
+        # print(dict_top2)
+        winner = max(dict_top2.items(), key=lambda x: x[1])[0]
+
+        return winner
+
+    def PluRunOff_cowinners(self, profile):
+        """
+        Returns a list that associates all the winners of a profile under Plurality with Runoff rule.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+
+        # Currently, we expect the profile to contain complete ordering over candidates. Ties are
+        # allowed however.
+        elecType = profile.getElecType()
+        if elecType != "soc" and elecType != "toc" and elecType != "csv":
+            print("ERROR: unsupported election type")
+            exit()
+
+        # Initialization
+        prefcounts = profile.getPreferenceCounts()
+        len_prefcounts = len(prefcounts)
+        rankmaps = profile.getRankMaps()
+        ranking = MechanismBorda().getRanking(profile)
+
+        known_winners = set()
+        # 1st round: find the top 2 candidates in plurality scores
+        top_2_combinations = []
+        if len(ranking[0][0]) > 1:
+            for cand1, cand2 in itertools.combinations(ranking[0][0], 2):
+                top_2_combinations.append([cand1, cand2])
+        else:
+            max_cand = ranking[0][0][0]
+            if len(ranking[0][1]) > 1:
+                for second_max_cand in ranking[0][1]:
+                    top_2_combinations.append([max_cand, second_max_cand])
+            else:
+                second_max_cand = ranking[0][1][0]
+                top_2_combinations.append([max_cand, second_max_cand])
+
+        # 2nd round: find the candidate with maximum plurality score
+        for top_2 in top_2_combinations:
+            dict_top2 = {top_2[0]: 0, top_2[1]: 0}
+            for i in range(len_prefcounts):
+                vote_top2 = {key: value for key, value in rankmaps[i].items() if key in top_2}
+                top_position = min(vote_top2.values())
+                keys = [x for x in vote_top2.keys() if vote_top2[x] == top_position]
+                for key in keys:
+                    dict_top2[key] += prefcounts[i]
+
+            max_value = max(dict_top2.values())
+            winners = [y for y in dict_top2.keys() if dict_top2[y] == max_value]
+            known_winners = known_winners | set(winners)
+
+        return sorted(known_winners)
+
+
+"""
+Multi-winner voting rules
+"""
+
+
+class MechanismSNTV():
+    """
+    The Single non-transferable vote mechanism.
+    """
+
+    def SNTV_winners(self, profile, K):
+        """
+        Returns a list that associates all the winners of a profile under Single non-transferable vote rule.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+
+        # Currently, we expect the profile to contain complete ordering over candidates. Ties are
+        # allowed however.
+        elecType = profile.getElecType()
+        if elecType != "soc" and elecType != "toc" and elecType != "csv":
+            print("ERROR: unsupported election type")
+            exit()
+
+        m = profile.numCands
+        candScoresMap = MechanismPlurality().getCandScoresMap(profile)
+        if K >= m:
+            return list(candScoresMap.keys())
+        # print(candScoresMap)
+        sorted_items = sorted(candScoresMap.items(), key=lambda x: x[1], reverse=True)
+        sorted_dict = {key: value for key, value in sorted_items}
+        winners = list(sorted_dict.keys())[0:K]
+        return winners
+
+
+class MechanismChamberlin_Courant():
+    """
+    The Chamberlin–Courant mechanism.
+    """
+
+    def Chamberlin_Courant_winners(self, profile, type='l_1', alpha='Borda', K=3):
+        """
+        Returns a list that associates all the winners of a profile under Single non-transferable vote rule.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+
+        # Currently, we expect the profile to contain complete ordering over candidates. Ties are
+        # allowed however.
+        elecType = profile.getElecType()
+        if elecType != "soc" and elecType != "toc" and elecType != "csv":
+            print("ERROR: unsupported election type")
+            exit()
+
+        pass
+
+
 class Node:
     def __init__(self, value=None):
         self.value = value
@@ -1344,4 +1515,6 @@ class Node:
 
     def getvalue(self):
         return self.value
+
+
 
