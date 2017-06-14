@@ -1,6 +1,6 @@
 """
-Author: Kevin J. Hwang
-        Jun Wang
+Authors: Kevin J. Hwang
+         Jun Wang
 """
 import io
 import math
@@ -152,13 +152,14 @@ class MechanismPosScoring(Mechanism):
 
     def getMov(self, profile):
         """
-        Returns an integer that is equal to the margin of victory of the election profile, that is,
-        the number of votes needed to be changed to change to outcome into a draw.
+        Returns an integer that is equal to the margin of victory of the election profile.
 
         :ivar Profile profile: A Profile object that represents an election profile.
         """
-        from . import mov
-        return mov.movPosScoring(profile, self.getScoringVector(profile))
+        # from . import mov
+        import mov
+        return mov.MoVScoring(profile, self.getScoringVector(profile))
+
 
 class MechanismPlurality(MechanismPosScoring):
     """
@@ -181,6 +182,7 @@ class MechanismPlurality(MechanismPosScoring):
         for i in range(1, profile.numCands):
             scoringVector.append(0)
         return scoringVector
+
 
 class MechanismVeto(MechanismPosScoring):
     """
@@ -307,13 +309,13 @@ class MechanismSimplifiedBucklin(Mechanism):
 
     def getMov(self, profile):
         """
-        Returns an integer that is equal to the margin of victory of the election profile, that is,
-        the number of votes needed to be changed to change to outcome into a draw.
+        Returns an integer that is equal to the margin of victory of the election profile.
 
         :ivar Profile profile: A Profile object that represents an election profile.
         """
-        from . import mov
-        return mov.movSimplifiedBucklin(profile)
+        # from . import mov
+        import mov
+        return mov.MoVSimplifiedBucklin(profile)
 
 class MechanismCopeland(Mechanism):
     """
@@ -355,12 +357,13 @@ class MechanismCopeland(Mechanism):
                 elif wmgMap[cand1][cand2] < 0:
                     copelandScores[cand2] += 1.0
             
-                #If a pair of candidates is tied, we add alpha to their score for each vote.
+                # If a pair of candidates is tied, we add alpha to their score for each vote.
                 else:
                     copelandScores[cand1] += self.alpha
                     copelandScores[cand2] += self.alpha
 
         return copelandScores
+
 
 class MechanismMaximin(Mechanism):
     """
@@ -399,6 +402,7 @@ class MechanismMaximin(Mechanism):
                 maximinScores[cand2] = min(maximinScores[cand2], wmg[cand2][cand1])
 
         return maximinScores
+
 
 class MechanismSchulze(Mechanism):
     """
@@ -512,6 +516,7 @@ class MechanismSchulze(Mechanism):
 
         return betterCount
 
+
 def getKendallTauScore(myResponse, otherResponse):
     """
     Returns the Kendall Tau Score
@@ -540,6 +545,7 @@ def getKendallTauScore(myResponse, otherResponse):
 
     #returns found value
     return kt
+
 
 class MechanismSTV():
     """
@@ -942,6 +948,7 @@ class MechanismBaldwin():
         print("wmg=",wmgMap)
         return wmgMap
 
+
 class MechanismCoombs():
 
     def coombs_winners(self, profile):
@@ -1101,6 +1108,7 @@ class MechanismCoombs():
 
         return plural_score
 
+
 class MechanismRankedPairs():
     """
     The Ranked Pairs mechanism.
@@ -1137,7 +1145,7 @@ class MechanismRankedPairs():
         for cand1, cand2 in itertools.permutations(wmg.keys(), 2):
             wmg2[(cand1, cand2)] = wmg[cand1][cand2]
 
-        while wmg2 is not None:
+        while len(wmg2) != 0:
             (edge, weight) = max(wmg2.items(), key=lambda x: x[1])
             if weight <= 0:
                 break
@@ -1313,6 +1321,7 @@ class MechanismRankedPairs():
         li.reverse()
         return li
 
+
 class MechanismBlack():
     """
     The Black mechanism.
@@ -1448,7 +1457,15 @@ class MechanismPluralityRunOff():
 
         return sorted(known_winners)
 
+    def getMov(self, profile):
+        """
+        Returns an integer that is equal to the margin of victory of the election profile.
 
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+        # from . import mov
+        import mov
+        return mov.MoVPluRunOff(profile)
 """
 Multi-winner voting rules
 """
@@ -1483,6 +1500,15 @@ class MechanismSNTV():
         winners = list(sorted_dict.keys())[0:K]
         return winners
 
+    def getMov(self, profile, K):
+        """
+        Returns an integer that is equal to the margin of victory of the election profile.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+        # from . import mov
+        import mov
+        return mov.MoV_SNTV(profile, K)
 
 class MechanismChamberlin_Courant():
     """
@@ -1515,6 +1541,4 @@ class Node:
 
     def getvalue(self):
         return self.value
-
-
 
