@@ -317,6 +317,7 @@ class MechanismSimplifiedBucklin(Mechanism):
         import mov
         return mov.MoVSimplifiedBucklin(profile)
 
+
 class MechanismCopeland(Mechanism):
     """
     The Copeland mechanism.
@@ -1510,12 +1511,13 @@ class MechanismSNTV():
         import mov
         return mov.MoV_SNTV(profile, K)
 
+
 class MechanismChamberlin_Courant():
     """
     The Chamberlin–Courant mechanism.
     """
 
-    def Chamberlin_Courant_winners(self, profile, type='l_1', alpha='Borda', K=3):
+    def single_peaked_winners(self, profile, d=1, K=3, funcType='Borda', scoringVector=[]):
         """
         Returns a list that associates all the winners of a profile under Single non-transferable vote rule.
 
@@ -1529,7 +1531,70 @@ class MechanismChamberlin_Courant():
             print("ERROR: unsupported election type")
             exit()
 
-        pass
+        # ------------------1. INITIALIZATION-----------------------------
+        m = profile.numCands
+        n = profile.numVoters
+        cand = list(profile.candMap.keys())
+        theta = n - d
+        if funcType == 'Borda':
+            scoringVector = MechanismBorda().getScoringVector(profile)
+        z = dict()
+        for k in range(1, K + 2):  # k = 1,...,K + 1
+            z[k] = dict()
+            for j in range(1, m + 2):
+                z[k][j] = dict()
+
+        for j in range(1, m + 2):
+            for t in range(0, theta + 1):
+                z[1][j][t] = self.s(profile, 1, j, t, {cand[j - 1]}, scoringVector)
+                for k in range(1, K + 1):
+                    z[k + 1][j][t] = float("-inf")
+
+        # ------------------2. MAIN LOOP-----------------------------
+        for k in range(1, K + 1):
+            # Predecessors loop:
+            for p in range(1, m + 1):
+                for u in range(0, theta + 1):
+                    if z[k][p][u] != float("-inf"):
+                        # Successors sub-loop:
+                        for j in range(p + 1, m + 2):
+                            for t in range(u, theta + 1):
+                                z[k + 1][j][t] = max(z[k + 1][j][t], z[k][p][u]
+                                + self.s(profile, p+1, j, t-u, {cand[p - 1], cand[j - 1]}, scoringVector))
+
+        max_utility = z[K + 1][m + 1][theta]
+        x = [False for i in cand]
+
+        winners = []
+        for i in cand:
+            if x[i]:
+                winners.append(i)
+        return winners
+
+    def s(self, profile, l, j, t, S, scoringVector):
+        new_prefcounts, new_rankmaps = self.V(profile, l, j)
+        if t == 0 or len(new_prefcounts) == 0:
+            return float("-inf")
+
+        s_S = []
+        for i in len(new_prefcounts):
+            s_S[i] = max(scoringVector[new_rankmaps[i][x] - 1] for x in S)
+
+        ind = (-array(s_S)).argsort()
+        return dot(array(s_S)[ind][0:t], array(new_prefcounts)[ind][0:t])
+
+    def V(self, profile, l, j):
+        prefcounts = profile.getPreferenceCounts()
+        rankmaps = profile.getRankMaps()
+        cand = list(profile.candMap.keys())
+        new_prefcounts = []
+        new_rankmaps = []
+        for i in len(prefcounts):
+            top_i = list(rankmaps[i].keys())[list(rankmaps[i].values()).index(1)]
+            if top_i in range(cand[l - 1], cand[j]):
+                new_prefcounts.append(prefcounts[i])
+                new_rankmaps.append(rankmaps[i])
+        return new_prefcounts, new_rankmaps
 
 
 class Node:
