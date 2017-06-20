@@ -315,7 +315,7 @@ def MoVScoring(profile, scoringVector):
                     MoV[c - delta] = temp_sum + math.floor(float(total_difference - lower_bound)/change[index][i]) + 1
                 # if c < d, score(c) = score (d), the winner will change to d.
                 else:
-                    MoV[c - delta] = temp_sum + math.ceil(float(total_difference - lower_bound)/change[index][i])
+                    MoV[c - delta] = temp_sum + math.ceil(float(total_difference - lower_bound)/change[index][i]) + 1
 
                 break
     # print("MoV=", MoV)
