@@ -148,6 +148,88 @@ from preference import Preference
 #     return movPosScoring(profile, scoringVector)
 
 
+# def MoVScoring_1(profile, scoringVector):
+#     """
+#     Returns an integer that represents the winning candidate given an election profile.
+#     The winner has the largest score.
+#     Tie-breaking rule: numerically increasing order
+#
+#     :ivar Profile profile: A Profile object that represents an election profile.
+#     :ivar list<int> scoringVector: A list of integers (or floats) that give the scores assigned to
+#         each position in a ranking from first to last.
+#     """
+#     # Currently, we expect the profile to contain complete ordering over candidates.
+#     elecType = profile.getElecType()
+#     if elecType != "soc" and elecType != "csv" and elecType != "toc":
+#         print("ERROR: unsupported profile type")
+#         exit()
+#
+#     n = profile.numVoters
+#     m = profile.numCands
+#     if len(scoringVector) != m:
+#         print("ERROR: the length of the scoring vector is not correct!")
+#         exit()
+#
+#     # Construct the score matrix--values
+#     prefcounts = array(profile.getPreferenceCounts())
+#     rankmaps = profile.getRankMaps()
+#     len_prefcounts = len(prefcounts)
+#     values = zeros([len_prefcounts, m], dtype=int)
+#
+#     if min(list(rankmaps[0].keys())) == 0:
+#         delta = 0
+#     else:
+#         delta = 1
+#
+#     for i in range(len_prefcounts):
+#         for j in range(delta, m + delta):
+#             values[i][j - delta] = scoringVector[rankmaps[i][j] - 1]
+#
+#     # Compute the scores of all the candidates
+#     score = dot(array(prefcounts), values)
+#     # Compute the winner of the original profile
+#     d = argmax(score, axis=0) + delta
+#     # print("d=",d)
+#     alter = delete(range(delta, m + delta), d - delta)
+#     # Initialize
+#     MoV = n * ones(m, dtype=int)
+#
+#     for c in alter:
+#         # The difference vector of d and c
+#         difference = values[:, c - delta] - values[:, d - delta]
+#         index = argsort(difference, axis=0, kind='mergesort')
+#         # The vector that each element is the gain in the difference
+#         # between d and c if the pattern of the vote changed to [c > others > d]
+#         change = scoringVector[0] - difference
+#
+#         # The total_difference between score(d) and score(c)
+#         total_difference = score[d - delta] - score[c - delta]
+#         for i in range(len_prefcounts):
+#             # The number of votes of the first i kinds of patterns
+#             temp_sum = sum(prefcounts[index][0:i])
+#
+#             # The aggregate gain (of the first i kinds of patterns)
+#             # in the difference between d and c if changed to [c > others > d]
+#             lower_bound = dot(prefcounts[index][0:i], change[index][0:i])
+#
+#             # The aggregate gain (of the first i+1 kinds of patterns)
+#             # in the difference between d and c if changed to [c > others > d]
+#             upper_bound = dot(prefcounts[index][0:i + 1], change[index][0:i + 1])
+#             if lower_bound < total_difference <= upper_bound:
+#                 # tie-breaking rule: numerically increasing order
+#                 # if c > d, score(c) = score (d), the winner is still d,
+#                 # so only when score(c) is strictly less than score(d), will the winner change to c.
+#                 if c > d:
+#                     MoV[c - delta] = temp_sum + math.floor(float(total_difference - lower_bound)/change[index][i]) + 1
+#                 # if c < d, score(c) = score (d), the winner will change to d.
+#                 else:
+#                     MoV[c - delta] = temp_sum + math.ceil(float(total_difference - lower_bound)/change[index][i])
+#
+#                 break
+#
+#     return min(MoV)
+
+
 def MoVScoring(profile, scoringVector):
     """
     Returns an integer that represents the winning candidate given an election profile.
@@ -164,6 +246,9 @@ def MoVScoring(profile, scoringVector):
         print("ERROR: unsupported profile type")
         exit()
 
+    winners = MechanismPosScoring(scoringVector).getWinners(profile)
+    if len(winners) > 1:
+        return 1
     n = profile.numVoters
     m = profile.numCands
     if len(scoringVector) != m:
@@ -188,13 +273,17 @@ def MoVScoring(profile, scoringVector):
     # Compute the scores of all the candidates
     score = dot(array(prefcounts), values)
     # Compute the winner of the original profile
+
     d = argmax(score, axis=0) + delta
+    # print("d=",d)
     alter = delete(range(delta, m + delta), d - delta)
     # Initialize
     MoV = n * ones(m, dtype=int)
+    # for c in [3]:
     for c in alter:
         # The difference vector of d and c
         difference = values[:, c - delta] - values[:, d - delta]
+        # print("dif=", difference)
         index = argsort(difference, axis=0, kind='mergesort')
         # The vector that each element is the gain in the difference
         # between d and c if the pattern of the vote changed to [c > others > d]
@@ -202,18 +291,23 @@ def MoVScoring(profile, scoringVector):
 
         # The total_difference between score(d) and score(c)
         total_difference = score[d - delta] - score[c - delta]
+        # print("total-dif=", total_difference)
         for i in range(len_prefcounts):
             # The number of votes of the first i kinds of patterns
             temp_sum = sum(prefcounts[index][0:i])
+            # print("temp_sum=", temp_sum)
 
             # The aggregate gain (of the first i kinds of patterns)
             # in the difference between d and c if changed to [c > others > d]
             lower_bound = dot(prefcounts[index][0:i], change[index][0:i])
+            # print("lower_bound=", lower_bound)
 
             # The aggregate gain (of the first i+1 kinds of patterns)
             # in the difference between d and c if changed to [c > others > d]
             upper_bound = dot(prefcounts[index][0:i + 1], change[index][0:i + 1])
-            if lower_bound < total_difference <= upper_bound:
+            # print("upper_bound=", upper_bound)
+            # if lower_bound < total_difference <= upper_bound:
+            if lower_bound <= total_difference < upper_bound:
                 # tie-breaking rule: numerically increasing order
                 # if c > d, score(c) = score (d), the winner is still d,
                 # so only when score(c) is strictly less than score(d), will the winner change to c.
@@ -224,100 +318,111 @@ def MoVScoring(profile, scoringVector):
                     MoV[c - delta] = temp_sum + math.ceil(float(total_difference - lower_bound)/change[index][i])
 
                 break
-
+    # print("MoV=", MoV)
     return min(MoV)
 
-
-def MoVPlurality(profile):
-    """
-    Returns an integer that represents the winning candidate given an election profile.
-    The winner has the largest Borda score.
-    Tie-breaking rule: numerically increasing order
-
-    :ivar Profile profile: A Profile object that represents an election profile.
-    :ivar array<int> scoringVector: A list of integers (or floats) that give the scores assigned to
-        each position in a ranking from first to last.
-    """
-    # Currently, we expect the profile to contain complete ordering over candidates.
-    elecType = profile.getElecType()
-    if elecType != "soc" and elecType != "toc":
-        print("ERROR: unsupported profile type")
-        exit()
-
-    m = profile.numCands
-    scoringVector = zeros(m, dtype=int)
-    scoringVector[0] = 1
-    # print(scoringVector)
-    MoV = MoVScoring(profile, scoringVector)
-    return MoV
-
-
-def MoVBorda(profile):
-    """
-    Returns an integer that represents the winning candidate given an election profile.
-    The winner has the largest Borda score.
-    Tie-breaking rule: numerically increasing order
-
-    :ivar Profile profile: A Profile object that represents an election profile.
-    :ivar array<int> scoringVector: A list of integers (or floats) that give the scores assigned to
-        each position in a ranking from first to last.
-    """
-    # Currently, we expect the profile to contain complete ordering over candidates.
-    elecType = profile.getElecType()
-    if elecType != "soc" and elecType != "toc":
-        print("ERROR: unsupported profile type")
-        exit()
-
-    m = profile.numCands
-    scoringVector = array(range(m - 1, -1, -1))
-    MoV = MoVScoring(profile, scoringVector)
-    return MoV
-
-
-def MoVVeto(profile):
-    """
-    Returns an integer that represents the winning candidate given an election profile.
-    The winner has the largest Veto score.
-    Tie-breaking rule: numerically increasing order
-
-    :ivar Profile profile: A Profile object that represents an election profile.
-    :ivar array<int> scoringVector: A list of integers (or floats) that give the scores assigned to
-        each position in a ranking from first to last.
-    """
-    # Currently, we expect the profile to contain complete ordering over candidates.
-    elecType = profile.getElecType()
-    if elecType != "soc" and elecType != "toc":
-        print("ERROR: unsupported profile type")
-        exit()
-
-    m = profile.numCands
-    scoringVector = ones(m, dtype=int)
-    scoringVector[m - 1] = 0
-    MoV = MoVScoring(profile, scoringVector)
-    return MoV
-
-
-def MoVkApproval(profile, k):
-    """
-    Returns an integer that represents the winning candidate given an election profile.
-    The winner has the largest Veto score.
-    Tie-breaking rule: numerically increasing order
-
-    :ivar Profile profile: A Profile object that represents an election profile.
-    :ivar array<int> scoringVector: A list of integers (or floats) that give the scores assigned to
-        each position in a ranking from first to last.
-    """
-    # Currently, we expect the profile to contain complete ordering over candidates.
-    elecType = profile.getElecType()
-    if elecType != "soc" and elecType != "toc":
-        print("ERROR: unsupported profile type")
-        exit()
-
-    m = profile.numCands
-    scoringVector = zeros(m, dtype=int)
-    scoringVector[0:k] = 1
-    MoV = MoVScoring(profile, scoringVector)
-    return MoV
+# def MoVPlurality(profile):
+#     """
+#     Returns an integer that represents the winning candidate given an election profile.
+#     The winner has the largest Borda score.
+#     Tie-breaking rule: numerically increasing order
+#
+#     :ivar Profile profile: A Profile object that represents an election profile.
+#     :ivar array<int> scoringVector: A list of integers (or floats) that give the scores assigned to
+#         each position in a ranking from first to last.
+#     """
+#     # Currently, we expect the profile to contain complete ordering over candidates.
+#     elecType = profile.getElecType()
+#     if elecType != "soc" and elecType != "toc":
+#         print("ERROR: unsupported profile type")
+#         exit()
+#
+#     winners = MechanismPlurality().getWinners(profile)
+#     if len(winners) > 1:
+#         return 1
+#     m = profile.numCands
+#     scoringVector = zeros(m, dtype=int)
+#     scoringVector[0] = 1
+#     # print(scoringVector)
+#     MoV = MoVScoring(profile, scoringVector)
+#     return MoV
+#
+#
+# def MoVBorda(profile):
+#     """
+#     Returns an integer that represents the winning candidate given an election profile.
+#     The winner has the largest Borda score.
+#     Tie-breaking rule: numerically increasing order
+#
+#     :ivar Profile profile: A Profile object that represents an election profile.
+#     :ivar array<int> scoringVector: A list of integers (or floats) that give the scores assigned to
+#         each position in a ranking from first to last.
+#     """
+#     # Currently, we expect the profile to contain complete ordering over candidates.
+#     elecType = profile.getElecType()
+#     if elecType != "soc" and elecType != "toc":
+#         print("ERROR: unsupported profile type")
+#         exit()
+#
+#     winners = MechanismBorda().getWinners(profile)
+#     if len(winners) > 1:
+#         return 1
+#     m = profile.numCands
+#     scoringVector = array(range(m - 1, -1, -1))
+#     MoV = MoVScoring(profile, scoringVector)
+#     return MoV
+#
+#
+# def MoVVeto(profile):
+#     """
+#     Returns an integer that represents the winning candidate given an election profile.
+#     The winner has the largest Veto score.
+#     Tie-breaking rule: numerically increasing order
+#
+#     :ivar Profile profile: A Profile object that represents an election profile.
+#     :ivar array<int> scoringVector: A list of integers (or floats) that give the scores assigned to
+#         each position in a ranking from first to last.
+#     """
+#     # Currently, we expect the profile to contain complete ordering over candidates.
+#     elecType = profile.getElecType()
+#     if elecType != "soc" and elecType != "toc":
+#         print("ERROR: unsupported profile type")
+#         exit()
+#
+#     winners = MechanismVeto().getWinners(profile)
+#     if len(winners) > 1:
+#         return 1
+#     m = profile.numCands
+#     scoringVector = ones(m, dtype=int)
+#     scoringVector[m - 1] = 0
+#     MoV = MoVScoring(profile, scoringVector)
+#     return MoV
+#
+#
+# def MoVkApproval(profile, k):
+#     """
+#     Returns an integer that represents the winning candidate given an election profile.
+#     The winner has the largest Veto score.
+#     Tie-breaking rule: numerically increasing order
+#
+#     :ivar Profile profile: A Profile object that represents an election profile.
+#     :ivar array<int> scoringVector: A list of integers (or floats) that give the scores assigned to
+#         each position in a ranking from first to last.
+#     """
+#     # Currently, we expect the profile to contain complete ordering over candidates.
+#     elecType = profile.getElecType()
+#     if elecType != "soc" and elecType != "toc":
+#         print("ERROR: unsupported profile type")
+#         exit()
+#
+#     winners = MechanismKApproval(k).getWinners(profile)
+#     if len(winners) > 1:
+#         return 1
+#     m = profile.numCands
+#     scoringVector = zeros(m, dtype=int)
+#     scoringVector[0:k] = 1
+#     MoV = MoVScoring(profile, scoringVector)
+#     return MoV
 
 
 # def movSimplifiedBucklin(profile):
@@ -962,7 +1067,7 @@ def MoV_SNTV(profile, K):
     candScoresMap = MechanismPlurality().getCandScoresMap(profile)
     if K >= m:
         return float("inf")
-    print(candScoresMap)
+    # print(candScoresMap)
     sorted_items = sorted(candScoresMap.items(), key=lambda x: x[1], reverse=True)
     sorted_dict = {key: value for key, value in sorted_items}
     sorted_cand = list(sorted_dict.keys())
