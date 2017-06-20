@@ -221,7 +221,7 @@ from preference import Preference
 #                 # so only when score(c) is strictly less than score(d), will the winner change to c.
 #                 if c > d:
 #                     MoV[c - delta] = temp_sum + math.floor(float(total_difference - lower_bound)/change[index][i]) + 1
-#                 # if c < d, score(c) = score (d), the winner will change to d.
+#                 # if c < d, score(c) = score (d), the winner will change to c.
 #                 else:
 #                     MoV[c - delta] = temp_sum + math.ceil(float(total_difference - lower_bound)/change[index][i])
 #
@@ -308,15 +308,7 @@ def MoVScoring(profile, scoringVector):
             # print("upper_bound=", upper_bound)
             # if lower_bound < total_difference <= upper_bound:
             if lower_bound <= total_difference < upper_bound:
-                # tie-breaking rule: numerically increasing order
-                # if c > d, score(c) = score (d), the winner is still d,
-                # so only when score(c) is strictly less than score(d), will the winner change to c.
-                if c > d:
-                    MoV[c - delta] = temp_sum + math.floor(float(total_difference - lower_bound)/change[index][i]) + 1
-                # if c < d, score(c) = score (d), the winner will change to d.
-                else:
-                    MoV[c - delta] = temp_sum + math.ceil(float(total_difference - lower_bound)/change[index][i]) + 1
-
+                MoV[c - delta] = temp_sum + math.floor(float(total_difference - lower_bound)/change[index][i]) + 1
                 break
     # print("MoV=", MoV)
     return min(MoV)
