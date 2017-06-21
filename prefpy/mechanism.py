@@ -1535,6 +1535,7 @@ class MechanismChamberlin_Courant():
         m = profile.numCands
         n = profile.numVoters
         cand = list(profile.candMap.keys())
+        cand.append(cand[m - 1] + 1)
         theta = n - d
         if funcType == 'Borda':
             scoringVector = MechanismBorda().getScoringVector(profile)
@@ -1563,22 +1564,37 @@ class MechanismChamberlin_Courant():
                                 + self.s(profile, p+1, j, t-u, {cand[p - 1], cand[j - 1]}, scoringVector))
 
         max_utility = z[K + 1][m + 1][theta]
-        x = [False for i in cand]
-
+        print("max_utility=", max_utility)
+        # --------------------3. OUTPUT WINNERS---------------------------
         winners = []
-        for i in cand:
-            if x[i]:
-                winners.append(i)
-        return winners
+        temp_max = max_utility
+        j = m + 1
+        t = theta
+        for k in range(K + 1, 1, -1):
+
+            z_k_j_t = array([[z[k - 1][p][u] + self.s(profile, p + 1, j, t - u, {cand[p - 1], cand[j - 1]}, scoringVector)
+                              for u in range(0, theta+1)] for p in range(1, m+1)])
+            p_ind = where(temp_max == z_k_j_t)[0][0]
+            u_ind = where(temp_max == z_k_j_t)[0][0]
+            p0 = list(range(1, m+1))[p_ind]
+            u0 = list(range(0, theta+1))[u_ind]
+            winners.append(p0)
+            temp_max = z[k][p0][u0]
+            j = p0
+            t = u0
+
+        return sorted(winners)
 
     def s(self, profile, l, j, t, S, scoringVector):
         new_prefcounts, new_rankmaps = self.V(profile, l, j)
+        # print(new_prefcounts, new_rankmaps)
         if t == 0 or len(new_prefcounts) == 0:
             return float("-inf")
 
         s_S = []
-        for i in len(new_prefcounts):
-            s_S[i] = max(scoringVector[new_rankmaps[i][x] - 1] for x in S)
+        for i in range(len(new_prefcounts)):
+            s_S.append(max(scoringVector[new_rankmaps[i][x] - 1]
+                           if x in new_rankmaps[i].keys() else float("-inf") for x in S))
 
         ind = (-array(s_S)).argsort()
         return dot(array(s_S)[ind][0:t], array(new_prefcounts)[ind][0:t])
@@ -1587,11 +1603,13 @@ class MechanismChamberlin_Courant():
         prefcounts = profile.getPreferenceCounts()
         rankmaps = profile.getRankMaps()
         cand = list(profile.candMap.keys())
+        m = len(cand)
+        cand.append(cand[m - 1] + 1)
         new_prefcounts = []
         new_rankmaps = []
-        for i in len(prefcounts):
+        for i in range(len(prefcounts)):
             top_i = list(rankmaps[i].keys())[list(rankmaps[i].values()).index(1)]
-            if top_i in range(cand[l - 1], cand[j]):
+            if top_i in range(cand[l - 1], cand[j - 1] + 1):
                 new_prefcounts.append(prefcounts[i])
                 new_rankmaps.append(rankmaps[i])
         return new_prefcounts, new_rankmaps
