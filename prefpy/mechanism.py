@@ -1350,7 +1350,7 @@ class MechanismBlack():
                 if wmg[cand1][cand2] > 0:
                     outgoing += 1
             if outgoing == m - 1:
-                return cand1
+                return [cand1]
 
         Borda_winner = MechanismBorda().getWinners(profile)
         return Borda_winner
