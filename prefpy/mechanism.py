@@ -1183,9 +1183,11 @@ class MechanismRankedPairs():
         I = list(wmg.keys())
         G = dict()
         for i in I:
-            G[i] = []
+            G[i] = set() # ----------------------------------
         wmg2 = dict()
+        # print("wmg keys=", list(wmg.keys()))
         for cand1, cand2 in itertools.permutations(wmg.keys(), 2):
+            # print("cand 1 2=", cand1, cand2)
             wmg2[(cand1, cand2)] = wmg[cand1][cand2]
 
         root = Node(value=(wmg2, G))
@@ -1193,9 +1195,10 @@ class MechanismRankedPairs():
         stackNode.append(root)
 
         while stackNode:
+            # print(known_winners)
             node = stackNode.pop()
             (wmg2, G) = node.value
-            # print(wmg2, G)
+            # print("wmg2=", wmg2, G)
 
             temp_wmg = dict()
             for i in I:
@@ -1209,13 +1212,18 @@ class MechanismRankedPairs():
                 # print("okkk")
                 for (e, w) in wmg2.items():
                     if w > 0:
-                        G[e[0]].append(e[1])
+                        # print("e0 e1=",e[0],e[1])
+                        G[e[0]].add(e[1])  # -----------------------------------
                 # wmg2 = {}
+                # print("before G=", G)
                 top_list = self.topological_sort(G)
+                # print("top-list", top_list)
                 # add all the sources with same topological level to the known_winners set
                 sources = list(G.values()).count(G[top_list[0]])
-                # print(G, sources)
+                # print("G=", G, sources)
+
                 known_winners = known_winners | set(top_list[0:sources])
+                # print("1st:=",known_winners)
                 break
 
             while len(wmg2) != 0:
@@ -1225,13 +1233,15 @@ class MechanismRankedPairs():
                     top_list = self.topological_sort(G)
                     # add all the sources with same topological level to the known_winners set
                     sources = list(G.values()).count(G[top_list[0]])
+                    # print("2nd G=", G)
                     known_winners = known_winners | set(top_list[0:sources])
+                    # print("2nd:=", known_winners)
                     break
                 ties = list(wmg2.values()).count(max_weight)
                 # print("ties=", ties, "G=", G, "wmg2=", wmg2)
                 if ties == 1:
                     edge = max_edge
-                    G[edge[0]].append(edge[1])
+                    G[edge[0]].add(edge[1])  # ---------------------------
                     if self.cyclic(G) is False:
                         wmg2.pop(edge)
                     else:
@@ -1247,7 +1257,7 @@ class MechanismRankedPairs():
                         wmg2c = copy.deepcopy(wmg2)
                         # print("Gc=", Gc)
                         # print("edge=", edge[0], edge[1])
-                        Gc[edge[0]].append(edge[1])
+                        Gc[edge[0]].add(edge[1])  # -------------------------------
                         if self.cyclic(Gc) is False:
                             wmg2c.pop(edge)
                         else:
