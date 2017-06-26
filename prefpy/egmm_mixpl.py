@@ -1,16 +1,87 @@
 import numpy as np
 import time
+from plackettluce import *
+from collections import defaultdict
+
+def draw_kpl_partial(alphas, gammas, alts, head):
+    k = len(alphas)
+    cumalphas = np.cumsum(alphas)
+    toss = np.random.rand()
+    idx = 0
+    for r in range(k):
+        if toss <= cumalphas[r]:
+            idx = r
+            break
+    gamma = gammas[idx]
+    S = 1
+    for ind in head:
+        S -= gamma[int(ind)]
+    l = len(alts)
+    localgamma = []
+    localalts = np.asarray(alts.copy())
+    for i in range(l):
+        localgamma.append(gamma[alts[i]])
+    localgamma = np.asarray(localgamma)
+    vote = []
+    for i in range(l-1):
+        localpr = []
+        for g in localgamma:
+            localpr.append(1/g)
+        localpr = np.asarray(localpr)
+        cumpr = np.cumsum(localpr/np.sum(localpr))
+        lp = len(cumpr)
+        toss2 = np.random.rand()
+        for j in range(lp):
+            if toss2 <= cumpr[j]:
+                ind = j
+                break
+        vote.append(localalts[ind])
+        localgamma = np.delete(localgamma, ind)
+        localalts = np.delete(localalts, ind)
+    vote.append(localalts[0])
+    return vote
+"""
+To convert a weak order in the form of permutation ([1, 2, 2, 0] means a3>a0>a1=a2) to a strict order ([3,0,1,2] or [3,0,2,1])
+ranking: the permutation to convert
+alphas: mixing probabilities
+gammas: parameters of all components
+"""
+def permconvert(ranking, alphas, gammas):
+    flag = 0
+    d = defaultdict(list)
+    for i in range(len(ranking)):
+        d[ranking[i]].append(i)
+    vote = []
+    for key in d.keys():
+        if len(d[key]) == 1:
+            vote=np.concatenate((vote,d[key]),axis = 0)
+        else:
+            flag = 1
+            vote=np.concatenate((vote,draw_kpl_partial(alphas, gammas, d[key], vote)),axis = 0)
+    return [ int(x) for x in vote ], flag
 
 def rank2str(ranking):
-    s = str(int(ranking[0]))
+    s = str(ranking[0])
     for alt in ranking[1:]:
-        s += '-'+str(int(alt))
+        s += '-'+str(alt)
     return s
 
-def Dictionarize(rankings):
+def Dictionarize(rankings, m):
     rankcnt = {}
     #print("1",rankings[1])
     for ranking in rankings:
+        #print("2",ranking)
+        flag = 0
+        l = len(ranking)
+        if len(set(ranking)) < l:
+            print("Orders with duplicate alternatives are ignored!")
+            continue
+        for i in range(l):
+            if ranking[i] >= m or ranking[i] < 0:
+                flag = 1
+        if flag == 1:
+            print("Alternative index out of range! Ranking ignored!")
+            continue
         key = rank2str(ranking)
         if key in rankcnt:
             rankcnt[key] += 1
@@ -30,29 +101,18 @@ def renorm(gamma):
 
 def prob_pl(gamma, ranking):
     m = len(gamma)
-    s = np.sum(gamma)
+    ranking = ranking.split('-')
+    l = len(ranking)
+    s = 0
+    for i in range(l):
+        s += gamma[int(ranking[i])]
     p = 1
-    for i in range(m-1):
+    for i in range(l-1):
         alt = int(ranking[i])
         p *= gamma[alt]/s
         s -= gamma[alt]
     return p
 
-def pr_mixpl(theta, ranking):
-    k = len(theta)
-    m = len(theta[0]) - 1
-    pr = 0
-    for r in range(k):
-        pr += theta[r][0]*prob_pl(theta[r][1:], ranking)
-    return pr
-
-def nllpl(theta, data):
-    nn = len(data)
-    ll = 0
-    for j in range(nn):
-        ll += data[j][0]*np.log(pr_mixpl(theta, data[j][1:]-1))
-    nll = -ll
-    return nll
 
 def aggpl(breaking):
     m = len(breaking)
@@ -88,49 +148,68 @@ def aggpl(breaking):
 '''
 
 
-def egmm_mixpl(data, k = 2, itr = 20):
+def egmm_mixpl(data, m, k = 2, itr = 20):
+    if k == 1:
+        itr = 2
     n = len(data)
-    m = len(data[0])
-    alphas = np.random.rand(k)
+    alphas = np.random.rand(k, 1)
     alphas /= np.sum(alphas)
     gammas = np.random.rand(k, m)
     for r in range(k):
         gammas[r] /= np.sum(gammas[r])
         if any(gammas[r]) <= 0.001:
             gammas[r] = renorm(gammas[r])
-    te = 0
-    tm = 0
-    DataDict = Dictionarize(data)
+    rankings_strict = []
+    rankings_weak = []
+    perms_weak = []
+    for j in range(len(data)):
+        temp, idr = permconvert(data[j], alphas, gammas)
+        if idr == 0:
+            rankings_strict.append(temp)
+        else:
+            rankings_weak.append(temp)
+            perms_weak.append(data[j])
+    rankings = rankings_strict + rankings_weak
     for i in range(itr):
+        if not perms_weak and i == 1:
+            rankings_weak = []
+            for j in range(len(perms_weak)):
+                temp, idr = permconvert(perms_weak[j], alphas, gammas)
+                rankings_weak.append(temp)
+            rankings = rankings_strict + rankings_weak
+        DataDict = Dictionarize(rankings, m)
+        #print(rankings)
+        #print(DataDict)
+        if len(DataDict.keys()) == 0:
+            print("No valid rankings!")
+            return np.zeros((k, m+1))
         n1 = np.zeros((1, k), float)[0]
         breaking = np.zeros((k, m, m), float)
         #E Step
-        t0 = time.perf_counter()
         for vote, freq in DataDict.items():
+            #print(vote)
             ranking = vote.split('-')
             weights = np.zeros((1, k),float)[0]
             ss = 0
             for r in range(k):
-                weights[r] = alphas[r]*prob_pl(gammas[r],ranking)
+                weights[r] = alphas[r]*prob_pl(gammas[r],vote)
                 ss += weights[r]
             weights /= ss
             n1 += weights * freq
             for r in range(k):
                 for i1 in range(0, m-1):
                     for i2 in range(i1+1, m):
+                        #print(i1,i2)
                         breaking[r][int(ranking[i1]), int(ranking[i2])] += freq*weights[r]#/(m-i1)
-        t1 = time.perf_counter()
         #M Step
         alphas = n1/np.sum(n1)
+        #print(alphas)
         for r in range(k):
             gammas[r] = aggpl(breaking[r])
             for i in range(m):
                 if gammas[r][i] <= 0.001:
                     gammas[r] = renorm(gammas[r])
-        t2 = time.perf_counter()
-        #print("alphas:", alphas)
-        #print("gammas:", gammas)
-        te += t1 - t0
-        tm += t2 - t1
-    rslt = np.hstack((alphas, np.reshape(gammas, (1, k*m))[0]))
-    return rslt, te, tm
+    #print("alphas = ", alphas)
+    #print("gammas = ", gammas)
+    rslt = np.concatenate((np.array([alphas]).T,gammas), axis=1)
+    return rslt
