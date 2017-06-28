@@ -1624,6 +1624,53 @@ class MechanismChamberlin_Courant():
                 new_rankmaps.append(rankmaps[i])
         return new_prefcounts, new_rankmaps
 
+class MechanismBordaMean():
+    """
+    The Borda-mean mechanism by Sujoy.
+    """
+
+    def Borda_mean_winners(self, profile):
+        """
+        Returns a list that associates all the winners of a profile under The Borda-mean rule.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+        n_candidates = profile.numCands
+        prefcounts = profile.getPreferenceCounts()
+        len_prefcounts = len(prefcounts)
+        rankmaps = profile.getRankMaps()
+        values = zeros([len_prefcounts, n_candidates], dtype=int)
+        if min(list(rankmaps[0].keys())) == 0:
+            delta = 0
+        else:
+            delta = 1
+        for i in range(len_prefcounts):
+            for j in range(delta, n_candidates + delta):
+                values[i][j - delta] = rankmaps[i][j]
+        # print("values=", values)
+        mat0 = self._build_mat(values, n_candidates, prefcounts)
+        borda = [0 for i in range(n_candidates)]
+        for i in range(n_candidates):
+            borda[i] = sum([mat0[i, j] for j in range(n_candidates)])
+        borda_mean = mean(borda)
+        bin_winners_list = [int(borda[i] >= borda_mean) for i in range(n_candidates)]
+        return bin_winners_list
+
+    def _build_mat(self, ranks, n_candidates, prefcounts):
+        """
+        Builds  mxm matrix. Entry at i,j has #i>j - #i<j
+        :param ranks:
+        :return: mxm matrix
+        """
+
+        mat = zeros((n_candidates, n_candidates))
+        for i, j in itertools.combinations(range(n_candidates), 2):
+            preference = ranks[:, i] - ranks[:, j]
+            h_ij = dot((preference < 0), prefcounts)  # prefers i to j
+            h_ji = dot((preference > 0), prefcounts)  # prefers j to i
+            mat[i, j] = h_ij - h_ji
+            mat[j, i] = h_ji - h_ij
+        return mat
 
 class Node:
     def __init__(self, value=None):
