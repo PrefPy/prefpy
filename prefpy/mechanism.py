@@ -1672,6 +1672,95 @@ class MechanismBordaMean():
             mat[j, i] = h_ji - h_ij
         return mat
 
+        """
+        Simulate approval voting for any k-chotomous preferences where voters can have different values of k.
+        Borda-mean rule is applied to each vote, to change any k-chotomous preferences to dichotomous approval votes. 
+        Each vote is simulated as an approval vote.
+        The approval rule is then used to aggregate these simulated approval votes.
+        Input:
+            ranks: a nxm matrix. rows are for votes, columns for candidates. i,j-th entry gives rank of candidate j by voter i.
+                only the relative numbers/positions matter.
+        Output:
+            winners: an m-dimensional array. j-th entry is 1 if candidate j is a winner by the approval voting rule.
+            approval_score: an m-dimenstional array: j-th entry gives approval score of candidate j.
+        """
+    def simulated_approval(self, profile):
+        n_candidates = profile.numCands
+        prefcounts = profile.getPreferenceCounts()
+        len_prefcounts = len(prefcounts)
+        rankmaps = profile.getRankMaps()
+        values = zeros([len_prefcounts, n_candidates], dtype=int)
+        if min(list(rankmaps[0].keys())) == 0:
+            delta = 0
+        else:
+            delta = 1
+        for i in range(len_prefcounts):
+            for j in range(delta, n_candidates + delta):
+                values[i][j - delta] = rankmaps[i][j]
+        approval = list()
+        for i in range(n_voters):
+            vote = array([list(values[i,:])])
+            approvals = self.borda_mean(vote)
+            approval.append(approvals)
+        return self.approval_rule(array(approval))
+
+        """
+        Compute approval rule
+        Input:
+            approval: an nxm matrix of approval votes. i,j-th entry is 1 if voter i approves candidate j; 0 otherwise.
+        Output:
+            winners: an m-dimensional array. j-th entry is 1 if candidate j is a winner by the approval voting rule.
+            approval_score: an m-dimenstional array: j-th entry gives approval score of candidate j.    
+        """
+    def approval_rule(self, approval):
+        n_voters, n_candidates = approval.shape
+        approval_score = [0 for j in range(n_candidates)]
+        for i in range(n_voters):
+            approvals = approval[i,:]
+            approval_score = [approval_score[j] + approvals[j] for j in range(n_candidates)]
+        max_score = max(approval_score)
+        winners = list((array(approval_score) >= max_score).astype(int))
+        return winners, approval_score
+
+        """
+        Build weighted tournament graph from any k-chotomous preferences. Different votes can have different values of k.
+        Input:
+            ranks: a nxm matrix. rows are for votes, columns for candidates. i,j-th entry gives rank of candidate j by voter i.
+                only the relative numbers/positions matter.
+        Output:
+            mat: a mxm matrix. i,j-th entry gives |i>j| - |j>i|, ties are ignored, can have -ve entries.
+        """
+    def _build_mat_app(self, ranks):
+        n_voters, n_candidates = ranks.shape
+        mat = zeros((n_candidates, n_candidates))
+        for i, j in itertools.combinations(range(n_candidates), 2):
+            preference = ranks[:, i] - ranks[:, j]
+            h_ij = sum(preference < 0)  # prefers i to j
+            h_ji = sum(preference > 0)  # prefers j to i
+            mat[i, j] = h_ij - h_ji
+            mat[j, i] = h_ji - h_ij
+        return mat
+
+        """
+        Compute the Borda mean rule.
+        Input:
+            ranks: a nxm matrix. rows are for votes, columns for candidates. i,j-th entry gives rank of candidate j by voter i.
+                only the relative numbers/positions matter.
+        Output:
+            winners: an m-dimensional array. j-th entry is 1 if candidate j is a winner by the Borda mean rule, 0 otherwise.
+            borda: m-deimensional array with Borda mean scores, can be used to generate a ranking. 
+                Sum of edges from candidate j to every other candidate.
+        """
+    def borda_mean(self, ranks):
+        mat = self._build_mat_app(ranks)
+        n_voters, n_candidates = ranks.shape
+        borda = [0 for i in range(n_candidates)]
+        for i in range(n_candidates):
+            borda[i] = sum([mat[i,j] for j in range(n_candidates)])
+        borda_mean = mean(borda)
+        winners = [int(borda[i] >= borda_mean) for i in range(n_candidates)]
+        return winners
+
 class Node:
     def __init__(self, value=None):
         self.value = value
