@@ -1686,6 +1686,7 @@ class MechanismBordaMean():
         """
     def simulated_approval(self, profile):
         n_candidates = profile.numCands
+        n_voters = profile.numVoters
         prefcounts = profile.getPreferenceCounts()
         len_prefcounts = len(prefcounts)
         rankmaps = profile.getRankMaps()
