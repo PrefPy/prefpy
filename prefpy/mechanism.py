@@ -1748,7 +1748,7 @@ class MechanismPluralityRunOff():
 
         # 1st round: find the top 2 candidates in plurality scores
         # Compute the 1st-place candidate in plurality scores
-        print(ranking)
+        # print(ranking)
         max_cand = ranking[0][0][0]
 
         # Compute the 2nd-place candidate in plurality scores
