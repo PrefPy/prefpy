@@ -177,6 +177,39 @@ class MechanismPlurality(MechanismPosScoring):
     def __init__(self):
         self.maximizeCandScore = True
 
+    def getCandScoresMap(self, profile):
+        """
+        Returns a dictonary that associates the integer representation of each candidate with the
+        score they recieved in the profile.
+
+        :ivar Profile profile: A Profile object that represents an election profile.
+        """
+
+        # Currently, we expect the profile to contain complete ordering over candidates.
+        elecType = profile.getElecType()
+        if elecType != "soc" and elecType != "toc":
+            print("ERROR: unsupported election type")
+            exit()
+
+        # Initialize our dictionary so that all candidates have a score of zero.
+        candScoresMap = dict()
+        for cand in profile.candMap.keys():
+            candScoresMap[cand] = 0.0
+
+        rankMaps = profile.getRankMaps()
+        rankMapCounts = profile.getPreferenceCounts()
+        scoringVector = self.getScoringVector(profile)
+
+        # Go through the rankMaps of the profile and increment each candidates score appropriately.
+        for i in range(0, len(rankMaps)):
+            rankMap = rankMaps[i]
+            rankMapCount = rankMapCounts[i]
+            for cand in rankMap.keys():
+                candScoresMap[cand] += scoringVector[rankMap[cand] - 1] * rankMapCount
+
+        # print("candScoresMap=", candScoresMap)
+        return candScoresMap
+
     def getScoringVector(self, profile):
         """
         Returns the scoring vector [1,0,0,...,0]. This function is called by getCandScoresMap()
@@ -200,21 +233,39 @@ class MechanismVeto(MechanismPosScoring):
     def __init__(self):
         self.maximizeCandScore = True
 
-    def getScoringVector(self, profile):
+    def getCandScoresMap(self, profile):
         """
-        Returns the scoring vector [1,1,1,...,0]. This function is called by getCandScoresMap()
-        which is implemented in the parent class.
+        Returns a dictonary that associates the integer representation of each candidate with the
+        score they recieved in the profile.
 
         :ivar Profile profile: A Profile object that represents an election profile.
         """
 
-        numTiers = len(set(profile.getRankMaps()[0].values()))
-        scoringVector = []
-        for i in range(0, numTiers - 1):
-            scoringVector.append(1)
-        for i in range(numTiers - 1, profile.numCands):
-            scoringVector.append(0)
-        return scoringVector
+        # Currently, we expect the profile to contain complete ordering over candidates.
+        elecType = profile.getElecType()
+        if elecType != "soc" and elecType != "toc":
+            print("ERROR: unsupported election type")
+            exit()
+
+        # Initialize our dictionary so that all candidates have a score of zero.
+        candScoresMap = dict()
+        for cand in profile.candMap.keys():
+            candScoresMap[cand] = 0.0
+
+        rankMaps = profile.getRankMaps()
+        rankMapCounts = profile.getPreferenceCounts()
+
+        # Go through the rankMaps of the profile and increment each candidates score appropriately.
+        for i in range(0, len(rankMaps)):
+            rankMap = rankMaps[i]
+            rankMapCount = rankMapCounts[i]
+            maxpos = max(rankMap.values())
+            for cand in rankMap.keys():
+                if rankMap[cand] < maxpos:
+                    candScoresMap[cand] += rankMapCount
+
+        # print("candScoresMap=", candScoresMap)
+        return candScoresMap
 
 
 class MechanismBorda(MechanismPosScoring):
